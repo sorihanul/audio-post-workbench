@@ -1,0 +1,1676 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>노래 후보정 워크벤치</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --panel: #ffffff;
+      --ink: #17202a;
+      --muted: #667085;
+      --line: #d8dee8;
+      --accent: #1f7a5f;
+      --accent-soft: #e7f4ef;
+      --warn: #8a5a00;
+      --warn-soft: #fff3d6;
+      --bad: #b94a48;
+      --bad-soft: #fce7e7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Segoe UI", "Malgun Gothic", Arial, sans-serif;
+      line-height: 1.5;
+    }
+    header {
+      padding: 28px 24px 18px;
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+    }
+    header h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: 0; }
+    header p { margin: 0; color: var(--muted); }
+    main { max-width: 1180px; margin: 0 auto; padding: 20px; }
+    section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      margin-bottom: 14px;
+    }
+    h2 { margin: 0 0 12px; font-size: 18px; }
+    h3 { margin: 0 0 8px; font-size: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+    }
+    .compare-table th, .compare-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+    .compare-table th {
+      background: #f0f4f8;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .compare-table tr:last-child td { border-bottom: 0; }
+    .timeline {
+      width: 100%;
+      height: 90px;
+      margin-top: 10px;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .legend i {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fbfcfe;
+      min-height: 132px;
+    }
+    .metric strong { display: block; font-size: 22px; }
+    .metric span { color: var(--muted); }
+    .metric small {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .diagnosis {
+      border: 1px solid #b9ddcf;
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 12px;
+      background: var(--accent-soft);
+    }
+    .diagnosis strong { display: block; margin-bottom: 6px; }
+    .diagnosis p { margin: 0; color: #245846; }
+    .score-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .score-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fbfcfe;
+    }
+    .score-card strong {
+      display: block;
+      font-size: 28px;
+      line-height: 1.1;
+    }
+    .score-card span { color: var(--muted); }
+    .log-list { margin: 8px 0 0; padding-left: 20px; }
+    .log-list li { margin: 5px 0; }
+    .metric.warnish { border-color: #f0d28c; background: #fffaf0; }
+    .metric.risky { border-color: #f3b6b5; background: #fff5f5; }
+    .drop {
+      border: 2px dashed #b7c4d3;
+      border-radius: 8px;
+      padding: 22px;
+      background: #fbfcfe;
+      text-align: center;
+    }
+    input[type="file"] { width: 100%; max-width: 520px; }
+    button, .download {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 9px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--ink);
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    button.primary, .download.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    button:disabled, .download:disabled {
+      opacity: 0.45;
+      pointer-events: none;
+      cursor: not-allowed;
+    }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .mini-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .mini-actions button {
+      min-height: 32px;
+      padding: 5px 9px;
+      font-size: 13px;
+    }
+    .preset { display: flex; flex-wrap: wrap; gap: 8px; }
+    .preset button.active { background: var(--accent-soft); border-color: #9bcbb9; color: var(--accent); }
+    .goal-box {
+      margin-top: 14px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+    }
+    .goal-box strong { display: block; margin-bottom: 6px; }
+    .goal-box p { margin: 0 0 12px; color: var(--muted); }
+    .goal-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+    }
+    .goal-grid button {
+      min-height: 68px;
+      flex-direction: column;
+      gap: 4px;
+      align-items: flex-start;
+      justify-content: center;
+      text-align: left;
+      line-height: 1.25;
+      white-space: normal;
+      word-break: keep-all;
+    }
+    .goal-grid small {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+    .goal-grid button.active { background: var(--accent-soft); border-color: #9bcbb9; color: var(--accent); }
+    .goal-grid button.active small { color: var(--accent); }
+    .option-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .option {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 12px;
+      background: #fbfcfe;
+      font-weight: 700;
+    }
+    .ab-panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 12px;
+      background: #fbfcfe;
+    }
+    .ab-panel audio { margin-top: 10px; }
+    .note { background: var(--accent-soft); border-color: #b9ddcf; }
+    .warn { background: var(--warn-soft); border-color: #f0d28c; color: var(--warn); }
+    .bad { color: var(--bad); }
+    audio { width: 100%; margin-top: 8px; }
+    canvas {
+      width: 100%;
+      height: 120px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+    }
+    .status { color: var(--muted); margin-top: 8px; }
+    .result-list { margin: 0; padding-left: 20px; }
+    .result-list li { margin: 6px 0; }
+    .pill {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 4px 9px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 13px;
+    }
+    @media (max-width: 760px) {
+      main { padding: 12px; }
+      .grid, .two, .score-row { grid-template-columns: 1fr; }
+      .goal-grid { grid-template-columns: 1fr; }
+      .compare-table th, .compare-table td { padding: 9px 8px; font-size: 13px; }
+      header { padding: 22px 16px 14px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>노래 후보정 워크벤치</h1>
+    <p>파일을 넣고, 소리 위험을 점검하고, 보수적인 보정본을 비교해서 저장합니다.</p>
+  </header>
+
+  <main>
+    <section class="warn">
+      <h2>경계</h2>
+      <p>이 도구는 전문 믹싱/마스터링을 대체하지 않습니다. 초보자가 과한 음량, 클리핑, 먹먹함, 날카로움을 덜 망치게 돕는 로컬 후보정 도구입니다.</p>
+    </section>
+
+    <section>
+      <h2>1. 파일 넣기</h2>
+      <div class="drop">
+        <input id="fileInput" type="file" accept="audio/*">
+        <p id="fileNote" class="status">브라우저가 해석할 수 있는 wav, mp3, m4a 파일을 넣으세요. 파일은 외부로 업로드되지 않습니다.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>2. 자동 점검</h2>
+      <div class="grid">
+        <div id="peakMetric" class="metric"><strong id="peakValue">-</strong><span>최대 소리</span><small id="peakHelp">가장 큰 순간이 얼마나 0 dB에 가까운지 봅니다.</small></div>
+        <div id="rmsMetric" class="metric"><strong id="rmsValue">-</strong><span>평균 소리</span><small id="rmsHelp">노래 전체가 체감상 어느 정도 크게 들릴지 봅니다.</small></div>
+        <div id="clipMetric" class="metric"><strong id="clipValue">-</strong><span>찢어짐 위험</span><small id="clipHelp">높으면 소리가 깨질 수 있어 더 키우면 안 됩니다.</small></div>
+        <div id="dynamicMetric" class="metric"><strong id="dynamicValue">-</strong><span>움직임</span><small id="dynamicHelp">소리의 숨 쉴 공간입니다. 너무 낮으면 이미 눌린 소리입니다.</small></div>
+        <div id="mudMetric" class="metric"><strong id="mudValue">-</strong><span>먹먹함</span><small id="mudHelp">저역/저중역이 많으면 보컬과 악기가 답답해질 수 있습니다.</small></div>
+        <div id="sharpMetric" class="metric"><strong id="sharpValue">-</strong><span>날카로움</span><small id="sharpHelp">고역이 많으면 귀가 피곤하거나 치찰음이 튈 수 있습니다.</small></div>
+        <div id="balanceMetric" class="metric"><strong id="balanceValue">-</strong><span>좌우 밸런스</span><small id="balanceHelp">왼쪽/오른쪽 중 한쪽이 과하게 큰지 봅니다.</small></div>
+        <div id="monoMetric" class="metric"><strong id="monoValue">-</strong><span>모노 확인</span><small id="monoHelp">스테레오를 하나로 합쳤을 때 소리가 크게 줄어드는지 봅니다.</small></div>
+        <div id="leadSilenceMetric" class="metric"><strong id="leadSilenceValue">-</strong><span>앞 무음</span><small id="leadSilenceHelp">노래 시작 전에 긴 침묵이 있는지 봅니다.</small></div>
+        <div id="tailSilenceMetric" class="metric"><strong id="tailSilenceValue">-</strong><span>끝 무음</span><small id="tailSilenceHelp">노래 끝난 뒤 불필요한 침묵이 긴지 봅니다.</small></div>
+      </div>
+      <div id="diagnosisSummary" class="diagnosis">
+        <strong>자동 점검 요약</strong>
+        <p>파일을 넣고 자동 점검을 누르면, 지금 소리가 안전한지와 어떤 보정부터 시도할지 보여줍니다.</p>
+      </div>
+      <div class="score-row">
+        <div class="score-card"><strong id="originalScore">-</strong><span>원본 안전 점수</span></div>
+        <div class="score-card"><strong id="recommendedPreset">-</strong><span>앱의 추천</span></div>
+        <div class="score-card"><strong id="mainRisk">-</strong><span>먼저 볼 위험</span></div>
+      </div>
+      <div class="actions">
+        <button id="analyzeBtn" class="primary" disabled>자동 점검</button>
+      </div>
+      <p id="analysisNote" class="status">아직 분석 전입니다.</p>
+    </section>
+
+    <section>
+      <h2>3. 구간별 위험 타임라인</h2>
+      <div id="segmentSummary" class="diagnosis">
+        <strong>다시 들어볼 구간</strong>
+        <p>자동 점검을 누르면 구간별로 튀는 부분, 무음, 주의 구간을 표시합니다.</p>
+      </div>
+      <canvas id="riskTimeline" class="timeline" width="900" height="90"></canvas>
+      <div class="legend">
+        <span><i style="background:#b9ddcf"></i>보통</span>
+        <span><i style="background:#f0d28c"></i>주의</span>
+        <span><i style="background:#f3b6b5"></i>위험</span>
+        <span><i style="background:#cfe0ff"></i>무음</span>
+      </div>
+      <table class="compare-table" aria-label="구간별 위험 분석표">
+        <thead>
+          <tr><th>구간</th><th>최대 소리</th><th>평균 소리</th><th>판정</th><th>확인 포인트</th></tr>
+        </thead>
+        <tbody id="segmentRows">
+          <tr><td colspan="5">아직 구간 분석 전입니다.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>4. 추천 보정</h2>
+      <div id="recommendationBox" class="diagnosis">
+        <strong>앱의 추천</strong>
+        <p>자동 점검을 누르면 어떤 보정부터 비교할지 추천합니다.</p>
+      </div>
+      <div class="preset">
+        <button data-preset="light" class="active">약하게</button>
+        <button data-preset="normal">기본</button>
+        <button data-preset="strong">강하게</button>
+      </div>
+      <div class="goal-box">
+        <strong>소리 개선 목표</strong>
+        <p id="goalHelp">잘 모르겠으면 자동을 그대로 두세요. 분석 결과에 맞춰 덜 위험한 쪽으로 보정합니다.</p>
+        <div class="goal-grid">
+          <button data-goal="auto" class="active">자동<br><small>분석값에 맡김</small></button>
+          <button data-goal="clarity">보컬 또렷<br><small>중심 소리 선명</small></button>
+          <button data-goal="cleanLow">먹먹함 정리<br><small>저음 뭉침 완화</small></button>
+          <button data-goal="softenHigh">귀 피로 줄이기<br><small>날카로움 완화</small></button>
+          <button data-goal="separation">분리감 살리기<br><small>스테레오 폭 안전 보강</small></button>
+        </div>
+      </div>
+      <div class="option-row">
+        <label class="option"><input id="fadeToggle" type="checkbox" checked> 시작/끝을 살짝 부드럽게</label>
+      </div>
+      <div class="actions">
+        <button id="processBtn" class="primary" disabled>추천 보정 만들기</button>
+        <button id="saveBtn" class="download" disabled>보정본 저장</button>
+      </div>
+      <p id="processNote" class="status">과한 음압보다 안전한 비교본을 우선합니다.</p>
+    </section>
+
+    <section>
+      <h2>5. 보정 전/후 변화</h2>
+      <div id="afterSummary" class="diagnosis">
+        <strong>보정 결과 요약</strong>
+        <p>추천 보정을 만들면 원본과 보정본의 수치 차이를 보여줍니다.</p>
+      </div>
+      <div class="score-row">
+        <div class="score-card"><strong id="processedScore">-</strong><span>보정본 안전 점수</span></div>
+        <div class="score-card"><strong id="scoreDelta">-</strong><span>안전도 변화</span></div>
+        <div class="score-card"><strong id="processedMainRisk">-</strong><span>남은 위험</span></div>
+      </div>
+      <table class="compare-table" aria-label="보정 전후 변화표">
+        <thead>
+          <tr><th>항목</th><th>원본</th><th>보정본</th><th>판단</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>최대 소리</td><td id="beforePeak">-</td><td id="afterPeak">-</td><td id="peakDelta">-</td></tr>
+          <tr><td>평균 소리</td><td id="beforeRms">-</td><td id="afterRms">-</td><td id="rmsDelta">-</td></tr>
+          <tr><td>움직임</td><td id="beforeDynamic">-</td><td id="afterDynamic">-</td><td id="dynamicDelta">-</td></tr>
+          <tr><td>먹먹함</td><td id="beforeMud">-</td><td id="afterMud">-</td><td id="mudDelta">-</td></tr>
+          <tr><td>날카로움</td><td id="beforeSharp">-</td><td id="afterSharp">-</td><td id="sharpDelta">-</td></tr>
+        </tbody>
+      </table>
+      <div id="processLogBox" class="diagnosis">
+        <strong>보정 로그</strong>
+        <ul id="processLog" class="log-list">
+          <li>추천 보정을 만들면 실제 적용 내용을 보여줍니다.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>6. 원본 / 보정본 비교</h2>
+      <div class="ab-panel">
+        <h3>A/B 빠른 비교</h3>
+        <div class="actions">
+          <button id="abOriginalBtn" disabled>원본 듣기</button>
+          <button id="abProcessedBtn" disabled>보정본 듣기</button>
+        </div>
+        <audio id="abAudio" controls></audio>
+        <p id="abNote" class="status">파일을 넣으면 원본을, 보정본을 만들면 같은 플레이어에서 번갈아 들을 수 있습니다.</p>
+      </div>
+      <div class="two">
+        <div>
+          <h3>원본</h3>
+          <canvas id="originalWave" width="900" height="160"></canvas>
+          <audio id="originalAudio" controls></audio>
+        </div>
+        <div>
+          <h3>보정본</h3>
+          <canvas id="processedWave" width="900" height="160"></canvas>
+          <audio id="processedAudio" controls></audio>
+        </div>
+      </div>
+    </section>
+
+    <section class="note">
+      <h2>7. 읽는 법</h2>
+      <ul class="result-list">
+        <li><span class="pill">최대 소리</span> 0 dB에 가까우면 찢어질 위험이 큽니다.</li>
+        <li><span class="pill">평균 소리</span> 너무 낮으면 작게 들리고, 너무 높으면 눌린 느낌이 납니다.</li>
+        <li><span class="pill">먹먹함</span> 저역/저중역이 과하면 보컬과 악기가 답답하게 들릴 수 있습니다.</li>
+        <li><span class="pill">날카로움</span> 고역이 과하면 귀가 피곤하거나 치찰음이 도드라질 수 있습니다.</li>
+        <li><span class="pill">좌우 밸런스</span> 한쪽이 과하게 크면 이어폰이나 스피커에서 중심이 치우쳐 들릴 수 있습니다.</li>
+        <li><span class="pill">모노 확인</span> 모노에서 크게 줄어들면 작은 스피커나 일부 재생 환경에서 힘이 빠질 수 있습니다.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script>
+    const state = {
+      audioContext: null,
+      originalBuffer: null,
+      processedBuffer: null,
+      originalUrl: null,
+      processedUrl: null,
+      processedFileName: "processed.wav",
+      fileName: "processed",
+      preset: "light",
+      goal: "auto",
+      analysis: null,
+      segments: [],
+      originalScore: null
+    };
+
+    const presets = {
+      light: { highpass: 25, lowShelf: -0.8, highShelf: -0.5, compressorRatio: 1.6, driveGain: 0.96, rmsLift: 1.0, maxGain: 1.04, ceiling: 0.86 },
+      normal: { highpass: 35, lowShelf: -1.4, highShelf: -0.9, compressorRatio: 2.2, driveGain: 0.92, rmsLift: 1.03, maxGain: 1.08, ceiling: 0.84 },
+      strong: { highpass: 45, lowShelf: -2.2, highShelf: -1.4, compressorRatio: 3.0, driveGain: 0.88, rmsLift: 1.06, maxGain: 1.12, ceiling: 0.82 }
+    };
+
+    const goals = {
+      auto: {
+        label: "자동",
+        help: "분석 결과에 맞춰 먹먹함, 날카로움, 피크 위험을 우선 정리합니다."
+      },
+      clarity: {
+        label: "보컬 또렷",
+        help: "중심 소리가 묻히지 않도록 중고역 선명도를 아주 조금 보강합니다."
+      },
+      cleanLow: {
+        label: "먹먹함 정리",
+        help: "저음과 저중역이 뭉쳐 답답하게 들리는 후보를 줄입니다."
+      },
+      softenHigh: {
+        label: "귀 피로 줄이기",
+        help: "날카로운 고역과 치찰음 후보를 더 부드럽게 누릅니다."
+      },
+      separation: {
+        label: "분리감 살리기",
+        help: "악기와 보컬이 조금 덜 붙어 들리도록 선명도와 스테레오 폭을 안전하게 보강합니다."
+      }
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function ensureContext() {
+      if (!state.audioContext) {
+        state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      return state.audioContext;
+    }
+
+    function db(value) {
+      if (!Number.isFinite(value) || value <= 0) return "-inf dB";
+      return `${(20 * Math.log10(value)).toFixed(1)} dB`;
+    }
+
+    function dbNumber(value) {
+      if (!Number.isFinite(value) || value <= 0) return -120;
+      return 20 * Math.log10(value);
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function getMixedSamples(buffer) {
+      const length = buffer.length;
+      const channels = buffer.numberOfChannels;
+      const mixed = new Float32Array(length);
+      for (let channel = 0; channel < channels; channel++) {
+        const data = buffer.getChannelData(channel);
+        for (let i = 0; i < length; i++) {
+          mixed[i] += data[i] / channels;
+        }
+      }
+      return mixed;
+    }
+
+    function computeBasic(buffer) {
+      const samples = getMixedSamples(buffer);
+      let peak = 0;
+      let sum = 0;
+      let clipped = 0;
+      for (const sample of samples) {
+        const abs = Math.abs(sample);
+        if (abs > peak) peak = abs;
+        sum += sample * sample;
+        if (abs >= 0.995) clipped++;
+      }
+      const rms = Math.sqrt(sum / Math.max(samples.length, 1));
+      const dynamic = 20 * Math.log10(Math.max(peak, 0.000001) / Math.max(rms, 0.000001));
+      return { peak, rms, clipped, clippedRatio: clipped / Math.max(samples.length, 1), dynamic };
+    }
+
+    function computeBasicFromSamples(samples, start, end) {
+      let peak = 0;
+      let sum = 0;
+      let clipped = 0;
+      const safeEnd = Math.max(start + 1, end);
+      for (let i = start; i < safeEnd && i < samples.length; i++) {
+        const sample = samples[i];
+        const abs = Math.abs(sample);
+        if (abs > peak) peak = abs;
+        sum += sample * sample;
+        if (abs >= 0.995) clipped++;
+      }
+      const count = Math.max(1, Math.min(safeEnd, samples.length) - start);
+      const rms = Math.sqrt(sum / count);
+      const dynamic = 20 * Math.log10(Math.max(peak, 0.000001) / Math.max(rms, 0.000001));
+      return { peak, rms, clipped, clippedRatio: clipped / count, dynamic };
+    }
+
+    function formatTime(seconds) {
+      const safe = Math.max(0, seconds);
+      const min = Math.floor(safe / 60);
+      const sec = Math.floor(safe % 60).toString().padStart(2, "0");
+      return `${min}:${sec}`;
+    }
+
+    function classifySegment(metrics) {
+      const rmsDb = dbNumber(metrics.rms);
+      if (rmsDb < -50) return "무음";
+      if (metrics.peak >= 0.985 || metrics.clippedRatio > 0.0005) return "위험";
+      if (metrics.peak >= 0.94 || rmsDb > -8 || metrics.dynamic < 3) return "주의";
+      return "보통";
+    }
+
+    function describeSegment(segment) {
+      if (segment.risk === "무음") return "소리가 거의 없습니다. 의도한 여백인지 확인하세요.";
+      if (segment.risk === "위험") return "소리가 너무 튈 수 있습니다. 이 구간을 먼저 들어보세요.";
+      if (segment.risk === "주의") return "peak 또는 평균 음량이 높은 편입니다. 보정 전후로 비교하세요.";
+      return "큰 위험은 보이지 않습니다.";
+    }
+
+    function analyzeSegments(buffer) {
+      const samples = getMixedSamples(buffer);
+      const segmentCount = Math.min(8, Math.max(1, Math.ceil(buffer.duration)));
+      const segments = [];
+      for (let index = 0; index < segmentCount; index++) {
+        const start = Math.floor((samples.length * index) / segmentCount);
+        const end = Math.floor((samples.length * (index + 1)) / segmentCount);
+        const metrics = computeBasicFromSamples(samples, start, end);
+        const startSec = start / buffer.sampleRate;
+        const endSec = end / buffer.sampleRate;
+        const risk = classifySegment(metrics);
+        segments.push({
+          index,
+          startSec,
+          endSec,
+          ...metrics,
+          risk,
+          note: describeSegment({ risk })
+        });
+      }
+      return segments;
+    }
+
+    function computeSilence(buffer) {
+      const samples = getMixedSamples(buffer);
+      const threshold = 0.003;
+      let firstSound = 0;
+      let lastSound = samples.length - 1;
+
+      while (firstSound < samples.length && Math.abs(samples[firstSound]) < threshold) firstSound++;
+      while (lastSound > firstSound && Math.abs(samples[lastSound]) < threshold) lastSound--;
+
+      const leadSilenceSec = firstSound / buffer.sampleRate;
+      const tailSilenceSec = Math.max(0, (samples.length - 1 - lastSound) / buffer.sampleRate);
+      return { leadSilenceSec, tailSilenceSec };
+    }
+
+    function computeChannelRms(buffer, channelIndex) {
+      const data = buffer.getChannelData(channelIndex);
+      let sum = 0;
+      for (const sample of data) sum += sample * sample;
+      return Math.sqrt(sum / Math.max(data.length, 1));
+    }
+
+    function computeStereo(buffer) {
+      if (buffer.numberOfChannels < 2) {
+        return {
+          balanceLabel: "단일 채널",
+          balanceDeltaDb: 0,
+          balanceText: "단일 채널 파일이라 좌우 치우침은 없습니다.",
+          monoLabel: "안전",
+          monoLossDb: 0,
+          monoText: "이미 모노에 가까운 파일입니다."
+        };
+      }
+
+      const left = computeChannelRms(buffer, 0);
+      const right = computeChannelRms(buffer, 1);
+      const balanceDeltaDb = dbNumber(left) - dbNumber(right);
+      const absBalance = Math.abs(balanceDeltaDb);
+      const balanceLabel = absBalance > 3 ? "치우침" : absBalance > 1.5 ? "주의" : "균형";
+      const loudSide = balanceDeltaDb >= 0 ? "왼쪽" : "오른쪽";
+      const balanceText = balanceLabel === "균형"
+        ? "좌우 음량 차이가 크지 않습니다."
+        : `${loudSide}이 약 ${Math.abs(balanceDeltaDb).toFixed(1)} dB 큽니다. 중심이 치우쳐 들릴 수 있습니다.`;
+
+      const mono = getMixedSamples(buffer);
+      let monoSum = 0;
+      for (const sample of mono) monoSum += sample * sample;
+      const monoRms = Math.sqrt(monoSum / Math.max(mono.length, 1));
+      const channelAverage = (left + right) / 2;
+      const monoLossDb = dbNumber(monoRms / Math.max(channelAverage, 0.000001));
+      const monoLabel = monoLossDb < -6 ? "위험" : monoLossDb < -2 ? "주의" : "안전";
+      const monoText = monoLabel === "안전"
+        ? "모노로 합쳐도 큰 손실은 보이지 않습니다."
+        : monoLabel === "주의"
+          ? `모노에서 약 ${Math.abs(monoLossDb).toFixed(1)} dB 줄어듭니다. 작은 스피커에서 힘이 빠질 수 있습니다.`
+          : `모노에서 약 ${Math.abs(monoLossDb).toFixed(1)} dB 줄어듭니다. 위상 충돌 가능성이 있습니다.`;
+
+      return { balanceLabel, balanceDeltaDb, balanceText, monoLabel, monoLossDb, monoText };
+    }
+
+    async function renderBandRms(buffer, filterType, frequency) {
+      const offline = new OfflineAudioContext(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+      const source = offline.createBufferSource();
+      source.buffer = buffer;
+      const filter = offline.createBiquadFilter();
+      filter.type = filterType;
+      filter.frequency.value = frequency;
+      filter.Q.value = 0.707;
+      source.connect(filter);
+      filter.connect(offline.destination);
+      source.start();
+      const rendered = await offline.startRendering();
+      return computeBasic(rendered).rms;
+    }
+
+    async function analyze(buffer) {
+      const basic = computeBasic(buffer);
+      const stereo = computeStereo(buffer);
+      const silence = computeSilence(buffer);
+      const low = await renderBandRms(buffer, "lowpass", 220);
+      const mid = await renderBandRms(buffer, "bandpass", 1200);
+      const high = await renderBandRms(buffer, "highpass", 5200);
+      const lowRatio = low / Math.max(mid, 0.000001);
+      const highRatio = high / Math.max(mid, 0.000001);
+      return { ...basic, ...stereo, ...silence, low, mid, high, lowRatio, highRatio };
+    }
+
+    function labelClip(analysis) {
+      if (analysis.peak >= 0.999 || analysis.clippedRatio > 0.0005) return "높음";
+      if (analysis.peak >= 0.96) return "주의";
+      return "낮음";
+    }
+
+    function labelDynamic(analysis) {
+      if (analysis.dynamic < 7) return "많이 눌림";
+      if (analysis.dynamic < 11) return "보통";
+      return "넓음";
+    }
+
+    function labelMud(analysis) {
+      if (analysis.lowRatio > 1.8) return "높음";
+      if (analysis.lowRatio > 1.25) return "주의";
+      return "보통";
+    }
+
+    function labelSharp(analysis) {
+      if (analysis.highRatio > 1.45) return "높음";
+      if (analysis.highRatio > 1.05) return "주의";
+      return "보통";
+    }
+
+    function labelSilence(seconds) {
+      if (seconds >= 2) return "긴 편";
+      if (seconds >= 0.6) return "조금 있음";
+      return "짧음";
+    }
+
+    function resetMetricClasses() {
+      ["peakMetric", "rmsMetric", "clipMetric", "dynamicMetric", "mudMetric", "sharpMetric", "balanceMetric", "monoMetric", "leadSilenceMetric", "tailSilenceMetric"].forEach((id) => {
+        $(id).className = "metric";
+      });
+    }
+
+    function describeRms(analysis) {
+      const rmsDb = 20 * Math.log10(Math.max(analysis.rms, 0.000001));
+      if (rmsDb > -8) return "꽤 큰 편입니다. 보정에서 더 키우기보다 깨짐 방지가 우선입니다.";
+      if (rmsDb < -18) return "작은 편입니다. 다만 먼저 깨짐 위험을 확인한 뒤 조금씩 키우는 쪽이 안전합니다.";
+      return "보통 범위입니다. 원본과 비슷한 체감 음량으로 비교하면 됩니다.";
+    }
+
+    function describePeak(analysis) {
+      const headroom = Math.max(0, -20 * Math.log10(Math.max(analysis.peak, 0.000001)));
+      if (analysis.peak >= 0.96) return `남은 여유가 약 ${headroom.toFixed(1)} dB입니다. 더 키우면 깨질 수 있습니다.`;
+      if (analysis.peak <= 0.5) return `남은 여유가 약 ${headroom.toFixed(1)} dB입니다. 너무 작다면 약한 보정부터 비교하세요.`;
+      return `남은 여유가 약 ${headroom.toFixed(1)} dB입니다. 급하게 키우지 않아도 됩니다.`;
+    }
+
+    function describeDynamic(analysis) {
+      const label = labelDynamic(analysis);
+      if (label === "많이 눌림") return "이미 꽉 눌린 소리입니다. 강한 보정보다 약하게 또는 기본으로 비교하세요.";
+      if (label === "넓음") return "움직임이 넓습니다. 보정 후에도 원본의 자연스러움이 줄었는지 확인하세요.";
+      return "특별히 과하게 눌린 상태는 아닙니다.";
+    }
+
+    function describeBand(label, kind) {
+      if (kind === "mud") {
+        if (label === "높음") return "답답하게 들릴 수 있습니다. 기본 또는 강하게 보정이 도움이 될 수 있습니다.";
+        if (label === "주의") return "약간 답답할 수 있습니다. 기본 보정으로 비교해보세요.";
+        return "먹먹함은 크게 튀지 않습니다.";
+      }
+      if (label === "높음") return "귀가 피곤할 수 있습니다. 강하게 키우는 보정은 피하세요.";
+      if (label === "주의") return "고역이 조금 튈 수 있습니다. 약하게 보정 후 들어보세요.";
+      return "날카로움은 크게 튀지 않습니다.";
+    }
+
+    function updateMetricTone(id, level) {
+      if (level === "risky") $(id).classList.add("risky");
+      if (level === "warnish") $(id).classList.add("warnish");
+    }
+
+    function buildDiagnosisSummary(analysis) {
+      const clip = labelClip(analysis);
+      const dynamic = labelDynamic(analysis);
+      const mud = labelMud(analysis);
+      const sharp = labelSharp(analysis);
+      const warnings = [];
+
+      if (clip === "높음") warnings.push("찢어짐 위험이 높아서 음량을 더 키우면 안 됩니다.");
+      else if (clip === "주의") warnings.push("최대 소리가 0 dB에 가까워서 여유가 적습니다.");
+
+      if (dynamic === "많이 눌림") warnings.push("이미 눌린 소리라 강한 보정은 피하는 편이 안전합니다.");
+      if (mud !== "보통") warnings.push("먹먹함이 있어 저역을 조금 정리하는 보정이 어울립니다.");
+      if (sharp !== "보통") warnings.push("날카로움이 있어 고역을 더 올리는 보정은 피하세요.");
+      if (analysis.balanceLabel === "치우침") warnings.push("좌우 밸런스가 치우쳐 있어 중심이 한쪽으로 밀릴 수 있습니다.");
+      if (analysis.monoLabel === "위험") warnings.push("모노에서 소리가 크게 줄어 위상 충돌 가능성이 있습니다.");
+      if (analysis.leadSilenceSec >= 2) warnings.push("노래 앞에 긴 무음이 있어 재생 시작이 늦게 느껴질 수 있습니다.");
+      if (analysis.tailSilenceSec >= 2) warnings.push("노래 끝에 긴 무음이 있어 저장본이 불필요하게 길 수 있습니다.");
+
+      if (warnings.length === 0) {
+        return "큰 위험은 보이지 않습니다. 약하게 보정부터 만들고 원본과 같은 음량으로 비교하세요.";
+      }
+      return `${warnings[0]} 먼저 약하게 보정하고, 원본보다 커졌는지가 아니라 더 편하게 들리는지를 확인하세요.`;
+    }
+
+    function formatDelta(after, before) {
+      const delta = dbNumber(after) - dbNumber(before);
+      const sign = delta >= 0 ? "+" : "";
+      return `${sign}${delta.toFixed(1)} dB`;
+    }
+
+    function describeChange(metric, before, after) {
+      if (metric === "peak") {
+        const delta = dbNumber(after.peak) - dbNumber(before.peak);
+        if (delta < -1) return "최대 소리 여유가 늘었습니다.";
+        if (delta > 1) return "최대 소리가 커졌습니다. 저장 전 들어보세요.";
+        return "최대 소리는 크게 변하지 않았습니다.";
+      }
+      if (metric === "rms") {
+        const delta = dbNumber(after.rms) - dbNumber(before.rms);
+        if (Math.abs(delta) <= 0.8) return "체감 음량은 원본과 비슷합니다.";
+        return delta > 0 ? "체감 음량이 커졌습니다." : "체감 음량이 작아졌습니다.";
+      }
+      if (metric === "dynamic") {
+        const delta = after.dynamic - before.dynamic;
+        if (delta < -1) return "조금 더 눌렸습니다.";
+        if (delta > 1) return "움직임이 조금 살아났습니다.";
+        return "움직임 변화는 작습니다.";
+      }
+      if (metric === "mud") {
+        const delta = after.lowRatio - before.lowRatio;
+        if (delta < -0.08) return "먹먹함 후보가 줄었습니다.";
+        if (delta > 0.08) return "저역 비중이 늘었습니다.";
+        return "먹먹함 변화는 작습니다.";
+      }
+      if (metric === "sharp") {
+        const delta = after.highRatio - before.highRatio;
+        if (delta < -0.08) return "날카로움 후보가 줄었습니다.";
+        if (delta > 0.08) return "고역 비중이 늘었습니다.";
+        return "날카로움 변화는 작습니다.";
+      }
+      return "-";
+    }
+
+    function resetComparison() {
+      ["beforePeak", "afterPeak", "peakDelta", "beforeRms", "afterRms", "rmsDelta", "beforeDynamic", "afterDynamic", "dynamicDelta", "beforeMud", "afterMud", "mudDelta", "beforeSharp", "afterSharp", "sharpDelta"].forEach((id) => {
+        $(id).textContent = "-";
+      });
+      $("afterSummary").querySelector("p").textContent = "추천 보정을 만들면 원본과 보정본의 수치 차이를 보여줍니다.";
+    }
+
+    function updateComparison(before, after) {
+      $("beforePeak").textContent = db(before.peak);
+      $("afterPeak").textContent = db(after.peak);
+      $("peakDelta").textContent = describeChange("peak", before, after);
+      $("beforeRms").textContent = db(before.rms);
+      $("afterRms").textContent = db(after.rms);
+      $("rmsDelta").textContent = `${formatDelta(after.rms, before.rms)} / ${describeChange("rms", before, after)}`;
+      $("beforeDynamic").textContent = `${before.dynamic.toFixed(1)} dB`;
+      $("afterDynamic").textContent = `${after.dynamic.toFixed(1)} dB`;
+      $("dynamicDelta").textContent = describeChange("dynamic", before, after);
+      $("beforeMud").textContent = labelMud(before);
+      $("afterMud").textContent = labelMud(after);
+      $("mudDelta").textContent = describeChange("mud", before, after);
+      $("beforeSharp").textContent = labelSharp(before);
+      $("afterSharp").textContent = labelSharp(after);
+      $("sharpDelta").textContent = describeChange("sharp", before, after);
+
+      const rmsDelta = Math.abs(dbNumber(after.rms) - dbNumber(before.rms));
+      const peakDelta = dbNumber(after.peak) - dbNumber(before.peak);
+      if (rmsDelta <= 0.8 && peakDelta <= 0) {
+        $("afterSummary").querySelector("p").textContent = "체감 음량은 원본과 가깝고, 최대 소리 여유는 더 안전해졌습니다. 원본과 번갈아 들어보세요.";
+      } else if (rmsDelta > 1.5) {
+        $("afterSummary").querySelector("p").textContent = "보정 후 체감 음량 차이가 큽니다. 소리가 좋아진 것처럼 느껴지는 음량 착시를 조심하세요.";
+      } else {
+        $("afterSummary").querySelector("p").textContent = "보정 전후 변화가 있습니다. 원본보다 커졌는지가 아니라 더 편하게 들리는지를 확인하세요.";
+      }
+    }
+
+    function resetSegmentAnalysis() {
+      state.segments = [];
+      $("segmentSummary").querySelector("p").textContent = "자동 점검을 누르면 구간별로 튀는 부분, 무음, 주의 구간을 표시합니다.";
+      $("segmentRows").innerHTML = '<tr><td colspan="5">아직 구간 분석 전입니다.</td></tr>';
+      drawRiskTimeline($("riskTimeline"), []);
+    }
+
+    function riskColor(risk) {
+      if (risk === "위험") return "#f3b6b5";
+      if (risk === "주의") return "#f0d28c";
+      if (risk === "무음") return "#cfe0ff";
+      return "#b9ddcf";
+    }
+
+    function drawRiskTimeline(canvas, segments) {
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fbfcfe";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "#d8dee8";
+      ctx.strokeRect(0.5, 0.5, canvas.width - 1, canvas.height - 1);
+
+      if (!segments.length) {
+        ctx.fillStyle = "#667085";
+        ctx.font = "14px Segoe UI, Arial";
+        ctx.fillText("자동 점검 후 구간별 위험이 표시됩니다.", 18, 48);
+        return;
+      }
+
+      const width = canvas.width / segments.length;
+      segments.forEach((segment, index) => {
+        const x = index * width;
+        ctx.fillStyle = riskColor(segment.risk);
+        ctx.fillRect(x, 0, width, canvas.height);
+        ctx.strokeStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+        ctx.fillStyle = "#17202a";
+        ctx.font = "12px Segoe UI, Arial";
+        ctx.fillText(`${index + 1}`, x + 8, 22);
+        ctx.fillText(formatTime(segment.startSec), x + 8, canvas.height - 12);
+      });
+    }
+
+    function updateSegmentAnalysis(segments) {
+      state.segments = segments;
+      drawRiskTimeline($("riskTimeline"), segments);
+      $("segmentRows").innerHTML = segments.map((segment) => (
+        `<tr>
+          <td>${formatTime(segment.startSec)}-${formatTime(segment.endSec)}</td>
+          <td>${db(segment.peak)}</td>
+          <td>${db(segment.rms)}</td>
+          <td>${segment.risk}</td>
+          <td>
+            ${segment.note}
+            <div class="mini-actions">
+              <button data-segment-play="original" data-start="${segment.startSec}" data-end="${segment.endSec}">원본 듣기</button>
+              <button data-segment-play="processed" data-start="${segment.startSec}" data-end="${segment.endSec}" ${state.processedBuffer ? "" : "disabled"}>보정본 듣기</button>
+            </div>
+          </td>
+        </tr>`
+      )).join("");
+
+      const firstDanger = segments.find((segment) => segment.risk === "위험");
+      const firstWarning = segments.find((segment) => segment.risk === "주의");
+      const firstSilence = segments.find((segment) => segment.risk === "무음");
+      const target = firstDanger || firstWarning || firstSilence;
+      if (target) {
+        $("segmentSummary").querySelector("p").textContent = `${formatTime(target.startSec)}-${formatTime(target.endSec)} 구간을 먼저 확인하세요. 판정: ${target.risk}. ${target.note}`;
+      } else {
+        $("segmentSummary").querySelector("p").textContent = "구간별로 크게 튀는 부분은 보이지 않습니다. 원본과 보정본을 같은 음량으로 비교하세요.";
+      }
+    }
+
+    function getPrimaryRisk(analysis, segments = []) {
+      if (!analysis) return "-";
+      if (labelClip(analysis) === "높음" || analysis.peak >= 0.985) return "깨짐";
+      if (segments.some((segment) => segment.risk === "위험")) return "위험 구간";
+      if (analysis.monoLabel === "위험") return "모노";
+      if (analysis.balanceLabel === "치우침") return "좌우";
+      if (labelDynamic(analysis) === "많이 눌림") return "눌림";
+      if (labelMud(analysis) !== "보통") return "먹먹함";
+      if (labelSharp(analysis) !== "보통") return "날카로움";
+      if (analysis.leadSilenceSec >= 2 || analysis.tailSilenceSec >= 2) return "무음";
+      return "낮음";
+    }
+
+    function computeSafetyScore(analysis, segments = []) {
+      let score = 100;
+      const clip = labelClip(analysis);
+      const dynamic = labelDynamic(analysis);
+      const mud = labelMud(analysis);
+      const sharp = labelSharp(analysis);
+      const dangerousSegments = segments.filter((segment) => segment.risk === "위험").length;
+      const warningSegments = segments.filter((segment) => segment.risk === "주의").length;
+      const silenceSegments = segments.filter((segment) => segment.risk === "무음").length;
+
+      if (clip === "높음") score -= 28;
+      else if (clip === "주의" || analysis.peak >= 0.96) score -= 14;
+      if (dynamic === "많이 눌림") score -= 10;
+      if (mud === "높음") score -= 10;
+      else if (mud === "주의") score -= 5;
+      if (sharp === "높음") score -= 10;
+      else if (sharp === "주의") score -= 5;
+      if (analysis.balanceLabel === "치우침") score -= 10;
+      else if (analysis.balanceLabel === "주의") score -= 5;
+      if (analysis.monoLabel === "위험") score -= 16;
+      else if (analysis.monoLabel === "주의") score -= 8;
+      if (analysis.leadSilenceSec >= 2) score -= 4;
+      if (analysis.tailSilenceSec >= 2) score -= 4;
+      score -= Math.min(24, dangerousSegments * 8);
+      score -= Math.min(12, warningSegments * 3);
+      score -= Math.min(6, silenceSegments * 2);
+      return Math.max(0, Math.min(100, Math.round(score)));
+    }
+
+    function recommendPreset(analysis, segments = []) {
+      const dangerCount = segments.filter((segment) => segment.risk === "위험").length;
+      const clip = labelClip(analysis);
+      const dynamic = labelDynamic(analysis);
+      const mud = labelMud(analysis);
+      const sharp = labelSharp(analysis);
+
+      if (analysis.monoLabel === "위험") {
+        return {
+          preset: "light",
+          label: "약하게",
+          reason: "모노에서 손실이 큰 파일은 후보정으로 해결하기 어렵습니다. 먼저 약하게 비교하고 원본 믹스를 확인하세요."
+        };
+      }
+      if (clip !== "낮음" || analysis.peak >= 0.96 || dynamic === "많이 눌림" || dangerCount > 0) {
+        return {
+          preset: "light",
+          label: "약하게",
+          reason: "피크/구간 위험 또는 과압축 신호가 있어 강한 보정보다 약하게부터 비교하는 편이 안전합니다."
+        };
+      }
+      if (mud !== "보통" || sharp !== "보통" || analysis.balanceLabel !== "균형") {
+        return {
+          preset: "normal",
+          label: "기본",
+          reason: "먹먹함, 날카로움, 좌우 치우침 후보가 있어 기본 보정부터 비교해볼 만합니다."
+        };
+      }
+      return {
+        preset: "light",
+        label: "약하게",
+        reason: "큰 위험은 낮습니다. 원본 느낌을 보존하는 약한 보정부터 비교하세요."
+      };
+    }
+
+    function recommendGoal(analysis) {
+      if (!analysis) return "auto";
+      if (labelClip(analysis) !== "낮음" || analysis.peak >= 0.96 || labelDynamic(analysis) === "많이 눌림") return "softenHigh";
+      if (labelMud(analysis) !== "보통") return "cleanLow";
+      if (labelSharp(analysis) !== "보통") return "softenHigh";
+      if (analysis.balanceLabel === "균형" && analysis.monoLabel === "안전") return "separation";
+      return "clarity";
+    }
+
+    function selectPreset(presetName) {
+      document.querySelectorAll("[data-preset]").forEach((item) => {
+        item.classList.toggle("active", item.dataset.preset === presetName);
+      });
+      state.preset = presetName;
+      state.processedFileName = `${state.fileName}_post_${state.preset}.wav`;
+      if (state.processedBuffer) {
+        state.processedBuffer = null;
+        if (state.processedUrl) URL.revokeObjectURL(state.processedUrl);
+        state.processedUrl = null;
+        $("processedAudio").removeAttribute("src");
+        $("saveBtn").disabled = true;
+        $("abProcessedBtn").disabled = true;
+        drawWave($("processedWave"), null);
+        resetComparison();
+        $("processedScore").textContent = "-";
+        $("scoreDelta").textContent = "-";
+        $("processedMainRisk").textContent = "-";
+        $("processLog").innerHTML = "<li>프리셋을 바꿨습니다. 추천 보정을 다시 만들어야 합니다.</li>";
+        $("processNote").textContent = "프리셋을 바꿨습니다. 추천 보정을 다시 만드세요.";
+      }
+    }
+
+    function selectGoal(goalName) {
+      const safeGoal = goals[goalName] ? goalName : "auto";
+      document.querySelectorAll("[data-goal]").forEach((item) => {
+        item.classList.toggle("active", item.dataset.goal === safeGoal);
+      });
+      state.goal = safeGoal;
+      $("goalHelp").textContent = goals[safeGoal].help;
+      if (state.processedBuffer) {
+        state.processedBuffer = null;
+        if (state.processedUrl) URL.revokeObjectURL(state.processedUrl);
+        state.processedUrl = null;
+        $("processedAudio").removeAttribute("src");
+        $("saveBtn").disabled = true;
+        $("abProcessedBtn").disabled = true;
+        drawWave($("processedWave"), null);
+        resetComparison();
+        $("processedScore").textContent = "-";
+        $("scoreDelta").textContent = "-";
+        $("processedMainRisk").textContent = "-";
+        $("processLog").innerHTML = "<li>소리 개선 목표를 바꿨습니다. 추천 보정을 다시 만들어야 합니다.</li>";
+        $("processNote").textContent = "소리 개선 목표를 바꿨습니다. 추천 보정을 다시 만드세요.";
+      }
+    }
+
+    function updateRecommendation(analysis, segments) {
+      const score = computeSafetyScore(analysis, segments);
+      const recommendation = recommendPreset(analysis, segments);
+      const goalName = recommendGoal(analysis);
+      state.originalScore = score;
+      $("originalScore").textContent = score;
+      $("recommendedPreset").textContent = recommendation.label;
+      $("mainRisk").textContent = getPrimaryRisk(analysis, segments);
+      $("recommendationBox").querySelector("p").textContent = `${recommendation.label} 추천 + ${goals[goalName].label}: ${recommendation.reason}`;
+      selectPreset(recommendation.preset);
+      selectGoal(goalName);
+    }
+
+    function resetDecisionPanels() {
+      state.originalScore = null;
+      $("originalScore").textContent = "-";
+      $("recommendedPreset").textContent = "-";
+      $("mainRisk").textContent = "-";
+      $("processedScore").textContent = "-";
+      $("scoreDelta").textContent = "-";
+      $("processedMainRisk").textContent = "-";
+      $("recommendationBox").querySelector("p").textContent = "자동 점검을 누르면 어떤 보정부터 비교할지 추천합니다.";
+      $("processLog").innerHTML = "<li>추천 보정을 만들면 실제 적용 내용을 보여줍니다.</li>";
+      selectGoal("auto");
+    }
+
+    function buildProcessLog(before, after, presetLabel, goalLabel, applyFade, plan) {
+      const logs = [
+        `${presetLabel} 프리셋을 적용했습니다.`,
+        `${goalLabel} 목표를 적용했습니다.`,
+        "평균 음량은 원본과 가깝게 맞췄습니다.",
+        "최대 소리는 0 dB에 닿지 않도록 여유를 남겼습니다.",
+        "강한 음량 증폭은 하지 않았습니다."
+      ];
+
+      plan.logs.forEach((item) => logs.push(item));
+      if (applyFade) logs.push("시작/끝에 짧은 페이드 인/아웃을 적용했습니다.");
+      if (dbNumber(after.peak) < dbNumber(before.peak) - 1) logs.push("튀는 최대 소리 여유가 늘었습니다.");
+      if (labelMud(after) !== labelMud(before)) logs.push(`먹먹함 판정이 ${labelMud(before)}에서 ${labelMud(after)}로 바뀌었습니다.`);
+      if (labelSharp(after) !== labelSharp(before)) logs.push(`날카로움 판정이 ${labelSharp(before)}에서 ${labelSharp(after)}로 바뀌었습니다.`);
+      return logs;
+    }
+
+    function updateProcessedScore(before, after, logs) {
+      const score = computeSafetyScore(after, analyzeSegments(state.processedBuffer));
+      $("processedScore").textContent = score;
+      const baseScore = state.originalScore ?? computeSafetyScore(before, state.segments);
+      const delta = score - baseScore;
+      $("scoreDelta").textContent = `${delta >= 0 ? "+" : ""}${delta}`;
+      $("processedMainRisk").textContent = getPrimaryRisk(after, analyzeSegments(state.processedBuffer));
+      $("processLog").innerHTML = logs.map((item) => `<li>${item}</li>`).join("");
+    }
+
+    function updateMetrics(analysis) {
+      const clip = labelClip(analysis);
+      const dynamic = labelDynamic(analysis);
+      const mud = labelMud(analysis);
+      const sharp = labelSharp(analysis);
+
+      resetMetricClasses();
+      $("peakValue").textContent = db(analysis.peak);
+      $("rmsValue").textContent = db(analysis.rms);
+      $("clipValue").textContent = clip;
+      $("dynamicValue").textContent = dynamic;
+      $("mudValue").textContent = mud;
+      $("sharpValue").textContent = sharp;
+      $("balanceValue").textContent = analysis.balanceLabel;
+      $("monoValue").textContent = analysis.monoLabel;
+      $("leadSilenceValue").textContent = labelSilence(analysis.leadSilenceSec);
+      $("tailSilenceValue").textContent = labelSilence(analysis.tailSilenceSec);
+      $("peakHelp").textContent = describePeak(analysis);
+      $("rmsHelp").textContent = describeRms(analysis);
+      $("clipHelp").textContent = clip === "높음" ? "깨짐 위험이 큽니다. 볼륨을 올리는 보정은 피하세요." : clip === "주의" ? "여유가 적습니다. 보정 후 최대 소리를 다시 확인하세요." : "지금 상태에서는 깨짐 위험이 낮습니다.";
+      $("dynamicHelp").textContent = describeDynamic(analysis);
+      $("mudHelp").textContent = describeBand(mud, "mud");
+      $("sharpHelp").textContent = describeBand(sharp, "sharp");
+      $("balanceHelp").textContent = analysis.balanceText;
+      $("monoHelp").textContent = analysis.monoText;
+      $("leadSilenceHelp").textContent = analysis.leadSilenceSec >= 0.6
+        ? `시작 전 약 ${analysis.leadSilenceSec.toFixed(1)}초가 조용합니다. 의도한 여백인지 확인하세요.`
+        : "시작 전 무음은 짧은 편입니다.";
+      $("tailSilenceHelp").textContent = analysis.tailSilenceSec >= 0.6
+        ? `끝난 뒤 약 ${analysis.tailSilenceSec.toFixed(1)}초가 조용합니다. 너무 길면 나중에 자르는 기능을 쓰는 편이 좋습니다.`
+        : "끝부분 무음은 짧은 편입니다.";
+      $("diagnosisSummary").querySelector("p").textContent = buildDiagnosisSummary(analysis);
+
+      updateMetricTone("peakMetric", analysis.peak >= 0.96 ? "warnish" : "");
+      updateMetricTone("clipMetric", clip === "높음" ? "risky" : clip === "주의" ? "warnish" : "");
+      updateMetricTone("dynamicMetric", dynamic === "많이 눌림" ? "warnish" : "");
+      updateMetricTone("mudMetric", mud === "높음" ? "risky" : mud === "주의" ? "warnish" : "");
+      updateMetricTone("sharpMetric", sharp === "높음" ? "risky" : sharp === "주의" ? "warnish" : "");
+      updateMetricTone("balanceMetric", analysis.balanceLabel === "치우침" ? "risky" : analysis.balanceLabel === "주의" ? "warnish" : "");
+      updateMetricTone("monoMetric", analysis.monoLabel === "위험" ? "risky" : analysis.monoLabel === "주의" ? "warnish" : "");
+      updateMetricTone("leadSilenceMetric", analysis.leadSilenceSec >= 2 ? "warnish" : "");
+      updateMetricTone("tailSilenceMetric", analysis.tailSilenceSec >= 2 ? "warnish" : "");
+      $("analysisNote").textContent = `간이 분석 완료: ${state.originalBuffer.duration.toFixed(1)}초, ${state.originalBuffer.numberOfChannels}채널, ${state.originalBuffer.sampleRate} Hz`;
+    }
+
+    function drawWave(canvas, buffer) {
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fbfcfe";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "#d8dee8";
+      ctx.beginPath();
+      ctx.moveTo(0, canvas.height / 2);
+      ctx.lineTo(canvas.width, canvas.height / 2);
+      ctx.stroke();
+
+      if (!buffer) return;
+      const samples = getMixedSamples(buffer);
+      const step = Math.max(1, Math.floor(samples.length / canvas.width));
+      ctx.strokeStyle = "#1f7a5f";
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      for (let x = 0; x < canvas.width; x++) {
+        let min = 1;
+        let max = -1;
+        const start = x * step;
+        for (let i = 0; i < step && start + i < samples.length; i++) {
+          const value = samples[start + i];
+          if (value < min) min = value;
+          if (value > max) max = value;
+        }
+        const y1 = ((1 - max) * canvas.height) / 2;
+        const y2 = ((1 - min) * canvas.height) / 2;
+        ctx.moveTo(x, y1);
+        ctx.lineTo(x, y2);
+      }
+      ctx.stroke();
+    }
+
+    function buildCurve(amount) {
+      const length = 65536;
+      const curve = new Float32Array(length);
+      for (let i = 0; i < length; i++) {
+        const x = (i * 2) / length - 1;
+        curve[i] = Math.tanh(x * amount) / Math.tanh(amount);
+      }
+      return curve;
+    }
+
+    function scaleBuffer(buffer, gain) {
+      for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+        const data = buffer.getChannelData(channel);
+        for (let i = 0; i < data.length; i++) {
+          data[i] = clamp(data[i] * gain, -0.98, 0.98);
+        }
+      }
+      return buffer;
+    }
+
+    function applyFades(buffer, fadeInSeconds = 0.035, fadeOutSeconds = 0.08) {
+      const fadeInSamples = Math.min(buffer.length, Math.floor(buffer.sampleRate * fadeInSeconds));
+      const fadeOutSamples = Math.min(buffer.length, Math.floor(buffer.sampleRate * fadeOutSeconds));
+
+      for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+        const data = buffer.getChannelData(channel);
+        for (let i = 0; i < fadeInSamples; i++) {
+          data[i] *= i / Math.max(1, fadeInSamples);
+        }
+        for (let i = 0; i < fadeOutSamples; i++) {
+          const index = data.length - 1 - i;
+          data[index] *= i / Math.max(1, fadeOutSamples);
+        }
+      }
+      return buffer;
+    }
+
+    function buildEnhancementPlan(analysis, goalName, presetName) {
+      const resolvedGoal = goalName === "auto" ? recommendGoal(analysis) : goalName;
+      const weight = presetName === "strong" ? 1.2 : presetName === "normal" ? 1 : 0.7;
+      const mud = labelMud(analysis);
+      const sharp = labelSharp(analysis);
+      const clip = labelClip(analysis);
+      const dynamic = labelDynamic(analysis);
+      const plan = {
+        goalName: resolvedGoal,
+        goalLabel: goals[resolvedGoal]?.label || "자동",
+        mudCut: 0,
+        clarityBoost: 0,
+        deharshCut: 0,
+        airGain: 0,
+        width: 1,
+        logs: []
+      };
+
+      if (mud === "높음") plan.mudCut -= 1.2 * weight;
+      else if (mud === "주의") plan.mudCut -= 0.7 * weight;
+      if (sharp === "높음") plan.deharshCut -= 1.25 * weight;
+      else if (sharp === "주의") plan.deharshCut -= 0.75 * weight;
+      if (clip !== "낮음" || dynamic === "많이 눌림") plan.deharshCut -= 0.35 * weight;
+
+      if (resolvedGoal === "clarity") {
+        plan.clarityBoost += sharp === "보통" ? 0.75 * weight : 0.35 * weight;
+        plan.mudCut -= 0.35 * weight;
+      }
+      if (resolvedGoal === "cleanLow") {
+        plan.mudCut -= 1.05 * weight;
+        plan.clarityBoost += sharp === "보통" ? 0.25 * weight : 0;
+      }
+      if (resolvedGoal === "softenHigh") {
+        plan.deharshCut -= 1.15 * weight;
+        plan.airGain -= 0.35 * weight;
+      }
+      if (resolvedGoal === "separation") {
+        plan.mudCut -= 0.45 * weight;
+        plan.clarityBoost += sharp === "보통" ? 0.8 * weight : 0.35 * weight;
+        if (analysis.monoLabel === "안전" && analysis.balanceLabel === "균형") {
+          plan.width = 1 + (presetName === "strong" ? 0.08 : presetName === "normal" ? 0.06 : 0.035);
+        }
+      }
+
+      plan.mudCut = clamp(plan.mudCut, -3.6, 0);
+      plan.clarityBoost = clamp(plan.clarityBoost, 0, sharp === "보통" ? 1.4 : 0.65);
+      plan.deharshCut = clamp(plan.deharshCut, -3.2, 0);
+      plan.airGain = clamp(plan.airGain, -1.2, 0.5);
+
+      if (plan.mudCut < -0.2) logsPush(plan, "저음/저중역 뭉침 후보를 줄였습니다.");
+      if (plan.clarityBoost > 0.2) logsPush(plan, "보컬과 중심 악기가 덜 묻히도록 선명도를 조금 보강했습니다.");
+      if (plan.deharshCut < -0.2 || plan.airGain < -0.2) logsPush(plan, "귀가 피곤한 고역 후보를 부드럽게 눌렀습니다.");
+      if (plan.width > 1.01) {
+        logsPush(plan, "모노 손실이 낮은 파일이라 스테레오 폭을 아주 조금 넓혔습니다.");
+      } else if (resolvedGoal === "separation") {
+        logsPush(plan, "모노/좌우 위험을 피하려고 스테레오 폭 확대는 적용하지 않았습니다.");
+      }
+
+      return plan;
+    }
+
+    function logsPush(plan, message) {
+      if (!plan.logs.includes(message)) plan.logs.push(message);
+    }
+
+    function adjustStereoWidth(buffer, width) {
+      if (buffer.numberOfChannels < 2 || Math.abs(width - 1) < 0.01) return buffer;
+      const left = buffer.getChannelData(0);
+      const right = buffer.getChannelData(1);
+      for (let i = 0; i < buffer.length; i++) {
+        const mid = (left[i] + right[i]) * 0.5;
+        const side = (left[i] - right[i]) * 0.5 * width;
+        left[i] = clamp(mid + side, -0.98, 0.98);
+        right[i] = clamp(mid - side, -0.98, 0.98);
+      }
+      return buffer;
+    }
+
+    function matchConservativeLevel(original, processed, preset) {
+      const before = computeBasic(original);
+      const after = computeBasic(processed);
+      const targetRms = before.rms * preset.rmsLift;
+      const gainByRms = targetRms / Math.max(after.rms, 0.000001);
+      const gainByPeak = preset.ceiling / Math.max(after.peak, 0.000001);
+      const gain = Math.min(gainByRms, gainByPeak, preset.maxGain);
+      return scaleBuffer(processed, gain);
+    }
+
+    async function processBuffer(buffer, presetName, options = {}) {
+      const preset = presets[presetName];
+      const plan = buildEnhancementPlan(options.analysis || computeBasic(buffer), options.goal || state.goal, presetName);
+      const offline = new OfflineAudioContext(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+      const source = offline.createBufferSource();
+      source.buffer = buffer;
+
+      const highpass = offline.createBiquadFilter();
+      highpass.type = "highpass";
+      highpass.frequency.value = preset.highpass;
+
+      const lowShelf = offline.createBiquadFilter();
+      lowShelf.type = "lowshelf";
+      lowShelf.frequency.value = 180;
+      lowShelf.gain.value = preset.lowShelf;
+
+      const mudCut = offline.createBiquadFilter();
+      mudCut.type = "peaking";
+      mudCut.frequency.value = 320;
+      mudCut.Q.value = 0.9;
+      mudCut.gain.value = plan.mudCut;
+
+      const clarity = offline.createBiquadFilter();
+      clarity.type = "peaking";
+      clarity.frequency.value = 2600;
+      clarity.Q.value = 0.8;
+      clarity.gain.value = plan.clarityBoost;
+
+      const deharsh = offline.createBiquadFilter();
+      deharsh.type = "peaking";
+      deharsh.frequency.value = 6800;
+      deharsh.Q.value = 1.1;
+      deharsh.gain.value = plan.deharshCut;
+
+      const air = offline.createBiquadFilter();
+      air.type = "highshelf";
+      air.frequency.value = 9500;
+      air.gain.value = plan.airGain;
+
+      const highShelf = offline.createBiquadFilter();
+      highShelf.type = "highshelf";
+      highShelf.frequency.value = 6200;
+      highShelf.gain.value = preset.highShelf;
+
+      const compressor = offline.createDynamicsCompressor();
+      compressor.threshold.value = -18;
+      compressor.knee.value = 18;
+      compressor.ratio.value = preset.compressorRatio;
+      compressor.attack.value = 0.008;
+      compressor.release.value = 0.18;
+
+      const gain = offline.createGain();
+      gain.gain.value = preset.driveGain;
+
+      const limiter = offline.createWaveShaper();
+      limiter.curve = buildCurve(2.2);
+      limiter.oversample = "4x";
+
+      source.connect(highpass);
+      highpass.connect(lowShelf);
+      lowShelf.connect(mudCut);
+      mudCut.connect(clarity);
+      clarity.connect(deharsh);
+      deharsh.connect(air);
+      air.connect(highShelf);
+      highShelf.connect(compressor);
+      compressor.connect(gain);
+      gain.connect(limiter);
+      limiter.connect(offline.destination);
+      source.start();
+      const rendered = await offline.startRendering();
+      adjustStereoWidth(rendered, plan.width);
+      const leveled = matchConservativeLevel(buffer, rendered, preset);
+      return {
+        buffer: options.applyFade ? applyFades(leveled) : leveled,
+        plan
+      };
+    }
+
+    function setAbSource(kind, targetTime = null, shouldPlay = false) {
+      const audio = $("abAudio");
+      const currentTime = Number.isFinite(targetTime)
+        ? Math.max(0, targetTime)
+        : Number.isFinite(audio.currentTime)
+          ? audio.currentTime
+          : 0;
+      const source = kind === "processed" ? state.processedUrl : state.originalUrl;
+      if (!source) return;
+
+      const sameSource = audio.src === source;
+      let didSeek = false;
+      const seekAndMaybePlay = () => {
+        if (didSeek) return;
+        didSeek = true;
+        if (Number.isFinite(audio.duration)) {
+          audio.currentTime = Math.min(currentTime, Math.max(0, audio.duration - 0.1));
+        }
+        if (shouldPlay) {
+          audio.play().catch(() => {
+            $("abNote").textContent = "재생 버튼을 한 번 더 누르면 해당 구간부터 들을 수 있습니다.";
+          });
+        }
+      };
+      audio.onloadedmetadata = null;
+      if (!sameSource) {
+        audio.addEventListener("loadedmetadata", seekAndMaybePlay, { once: true });
+        audio.src = source;
+      } else if (audio.readyState >= 1) {
+        seekAndMaybePlay();
+      } else {
+        audio.addEventListener("loadedmetadata", seekAndMaybePlay, { once: true });
+      }
+      $("abOriginalBtn").classList.toggle("primary", kind === "original");
+      $("abProcessedBtn").classList.toggle("primary", kind === "processed");
+      $("abNote").textContent = kind === "processed"
+        ? "지금 듣는 것은 보정본입니다. 같은 위치에서 원본과 번갈아 비교하세요."
+        : "지금 듣는 것은 원본입니다. 보정본과 같은 위치에서 비교하세요.";
+    }
+
+    function playSegment(kind, startSec, endSec) {
+      if (kind === "processed" && !state.processedUrl) {
+        $("abNote").textContent = "보정본을 먼저 만들어야 이 구간의 보정본을 들을 수 있습니다.";
+        return;
+      }
+      setAbSource(kind, startSec, true);
+      const label = kind === "processed" ? "보정본" : "원본";
+      $("abNote").textContent = `${label} ${formatTime(startSec)}-${formatTime(endSec)} 구간으로 이동했습니다. 같은 구간에서 A/B로 비교하세요.`;
+    }
+
+    function resetAbPlayer() {
+      $("abAudio").removeAttribute("src");
+      $("abOriginalBtn").disabled = true;
+      $("abProcessedBtn").disabled = true;
+      $("abOriginalBtn").classList.remove("primary");
+      $("abProcessedBtn").classList.remove("primary");
+      $("abNote").textContent = "파일을 넣으면 원본을, 보정본을 만들면 같은 플레이어에서 번갈아 들을 수 있습니다.";
+    }
+
+    function encodeWav(buffer) {
+      const channels = buffer.numberOfChannels;
+      const sampleRate = buffer.sampleRate;
+      const length = buffer.length * channels * 2;
+      const arrayBuffer = new ArrayBuffer(44 + length);
+      const view = new DataView(arrayBuffer);
+      let offset = 0;
+
+      function writeString(value) {
+        for (let i = 0; i < value.length; i++) {
+          view.setUint8(offset++, value.charCodeAt(i));
+        }
+      }
+
+      writeString("RIFF");
+      view.setUint32(offset, 36 + length, true); offset += 4;
+      writeString("WAVE");
+      writeString("fmt ");
+      view.setUint32(offset, 16, true); offset += 4;
+      view.setUint16(offset, 1, true); offset += 2;
+      view.setUint16(offset, channels, true); offset += 2;
+      view.setUint32(offset, sampleRate, true); offset += 4;
+      view.setUint32(offset, sampleRate * channels * 2, true); offset += 4;
+      view.setUint16(offset, channels * 2, true); offset += 2;
+      view.setUint16(offset, 16, true); offset += 2;
+      writeString("data");
+      view.setUint32(offset, length, true); offset += 4;
+
+      const channelData = [];
+      for (let channel = 0; channel < channels; channel++) {
+        channelData.push(buffer.getChannelData(channel));
+      }
+      for (let i = 0; i < buffer.length; i++) {
+        for (let channel = 0; channel < channels; channel++) {
+          const sample = clamp(channelData[channel][i], -1, 1);
+          view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+          offset += 2;
+        }
+      }
+      return new Blob([arrayBuffer], { type: "audio/wav" });
+    }
+
+    async function loadFile(file) {
+      if (state.originalUrl) URL.revokeObjectURL(state.originalUrl);
+      if (state.processedUrl) URL.revokeObjectURL(state.processedUrl);
+      state.processedUrl = null;
+      state.fileName = file.name.replace(/\.[^.]+$/, "") || "processed";
+      state.processedFileName = `${state.fileName}_post_${state.preset}.wav`;
+      state.originalUrl = URL.createObjectURL(file);
+      $("originalAudio").src = state.originalUrl;
+      $("processedAudio").removeAttribute("src");
+      $("saveBtn").disabled = true;
+      resetAbPlayer();
+      $("fileNote").textContent = `${file.name} 불러오는 중...`;
+
+      const context = ensureContext();
+      const arrayBuffer = await file.arrayBuffer();
+      state.originalBuffer = await context.decodeAudioData(arrayBuffer.slice(0));
+      state.processedBuffer = null;
+      state.analysis = null;
+      state.segments = [];
+      drawWave($("originalWave"), state.originalBuffer);
+      drawWave($("processedWave"), null);
+      $("fileNote").textContent = `${file.name} 로드 완료`;
+      $("analyzeBtn").disabled = false;
+      $("processBtn").disabled = false;
+      $("analysisNote").textContent = "자동 점검을 누르세요.";
+      resetMetricClasses();
+      $("peakValue").textContent = "-";
+      $("rmsValue").textContent = "-";
+      $("clipValue").textContent = "-";
+      $("dynamicValue").textContent = "-";
+      $("mudValue").textContent = "-";
+      $("sharpValue").textContent = "-";
+      $("balanceValue").textContent = "-";
+      $("monoValue").textContent = "-";
+      $("leadSilenceValue").textContent = "-";
+      $("tailSilenceValue").textContent = "-";
+      $("peakHelp").textContent = "가장 큰 순간이 얼마나 0 dB에 가까운지 봅니다.";
+      $("rmsHelp").textContent = "노래 전체가 체감상 어느 정도 크게 들릴지 봅니다.";
+      $("clipHelp").textContent = "높으면 소리가 깨질 수 있어 더 키우면 안 됩니다.";
+      $("dynamicHelp").textContent = "소리의 숨 쉴 공간입니다. 너무 낮으면 이미 눌린 소리입니다.";
+      $("mudHelp").textContent = "저역/저중역이 많으면 보컬과 악기가 답답해질 수 있습니다.";
+      $("sharpHelp").textContent = "고역이 많으면 귀가 피곤하거나 치찰음이 튈 수 있습니다.";
+      $("balanceHelp").textContent = "왼쪽/오른쪽 중 한쪽이 과하게 큰지 봅니다.";
+      $("monoHelp").textContent = "스테레오를 하나로 합쳤을 때 소리가 크게 줄어드는지 봅니다.";
+      $("leadSilenceHelp").textContent = "노래 시작 전에 긴 침묵이 있는지 봅니다.";
+      $("tailSilenceHelp").textContent = "노래 끝난 뒤 불필요한 침묵이 긴지 봅니다.";
+      $("diagnosisSummary").querySelector("p").textContent = "자동 점검을 누르면, 지금 소리가 안전한지와 어떤 보정부터 시도할지 보여줍니다.";
+      resetComparison();
+      resetSegmentAnalysis();
+      resetDecisionPanels();
+      $("processNote").textContent = "추천 보정을 만들 수 있습니다.";
+      $("abOriginalBtn").disabled = false;
+      setAbSource("original");
+    }
+
+    $("fileInput").addEventListener("change", async (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      try {
+        await loadFile(file);
+      } catch (error) {
+        $("fileNote").textContent = "브라우저가 이 파일을 해석하지 못했습니다. wav 또는 일반 mp3로 다시 시도하세요.";
+        console.error(error);
+      }
+    });
+
+    $("analyzeBtn").addEventListener("click", async () => {
+      if (!state.originalBuffer) return;
+      $("analysisNote").textContent = "분석 중...";
+      state.analysis = await analyze(state.originalBuffer);
+      updateMetrics(state.analysis);
+      const segments = analyzeSegments(state.originalBuffer);
+      updateSegmentAnalysis(segments);
+      updateRecommendation(state.analysis, segments);
+    });
+
+    document.querySelectorAll("[data-preset]").forEach((button) => {
+      button.addEventListener("click", () => {
+        selectPreset(button.dataset.preset);
+      });
+    });
+
+    document.querySelectorAll("[data-goal]").forEach((button) => {
+      button.addEventListener("click", () => {
+        selectGoal(button.dataset.goal);
+      });
+    });
+
+    $("processBtn").addEventListener("click", async () => {
+      if (!state.originalBuffer) return;
+      $("processBtn").disabled = true;
+      $("processNote").textContent = "보정본 만드는 중...";
+      try {
+        if (!state.analysis) {
+          state.analysis = await analyze(state.originalBuffer);
+          updateMetrics(state.analysis);
+          const segments = analyzeSegments(state.originalBuffer);
+          updateSegmentAnalysis(segments);
+          updateRecommendation(state.analysis, segments);
+        }
+        const result = await processBuffer(state.originalBuffer, state.preset, {
+          analysis: state.analysis,
+          goal: state.goal,
+          applyFade: $("fadeToggle").checked
+        });
+        const processed = result.buffer;
+        const plan = result.plan;
+        state.processedBuffer = processed;
+        const processedAnalysis = await analyze(processed);
+        const presetLabel = document.querySelector(`[data-preset="${state.preset}"]`)?.textContent || state.preset;
+        const goalLabel = plan.goalLabel;
+        if (processedAnalysis.peak > 0.99) {
+          $("processNote").textContent = "보정본이 너무 큽니다. 약하게로 다시 시도하세요.";
+          $("processNote").className = "status bad";
+        } else {
+          $("processNote").textContent = `보정본 완료: ${goalLabel} 목표, 최대 소리 ${db(processedAnalysis.peak)}. 원본과 같은 구간으로 비교하세요.`;
+          $("processNote").className = "status";
+        }
+        updateComparison(state.analysis, processedAnalysis);
+        updateProcessedScore(state.analysis, processedAnalysis, buildProcessLog(state.analysis, processedAnalysis, presetLabel, goalLabel, $("fadeToggle").checked, plan));
+        drawWave($("processedWave"), processed);
+        const wav = encodeWav(processed);
+        if (state.processedUrl) URL.revokeObjectURL(state.processedUrl);
+        state.processedUrl = URL.createObjectURL(wav);
+        state.processedFileName = `${state.fileName}_post_${state.preset}_${plan.goalName}.wav`;
+        $("processedAudio").src = state.processedUrl;
+        $("saveBtn").disabled = false;
+        $("abProcessedBtn").disabled = false;
+        if (state.segments.length) updateSegmentAnalysis(state.segments);
+      } catch (error) {
+        $("processNote").textContent = "보정본 생성에 실패했습니다.";
+        console.error(error);
+      } finally {
+        $("processBtn").disabled = false;
+      }
+    });
+
+    $("saveBtn").addEventListener("click", () => {
+      if (!state.processedBuffer) {
+        $("processNote").textContent = "먼저 추천 보정을 만들어야 저장할 수 있습니다.";
+        return;
+      }
+      const wav = encodeWav(state.processedBuffer);
+      const url = URL.createObjectURL(wav);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = state.processedFileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      $("processNote").textContent = `저장을 요청했습니다: ${state.processedFileName}`;
+      window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+    });
+
+    $("segmentRows").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-segment-play]");
+      if (!button) return;
+      playSegment(button.dataset.segmentPlay, Number(button.dataset.start), Number(button.dataset.end));
+    });
+
+    $("abOriginalBtn").addEventListener("click", () => setAbSource("original"));
+    $("abProcessedBtn").addEventListener("click", () => setAbSource("processed"));
+  </script>
+</body>
+</html>

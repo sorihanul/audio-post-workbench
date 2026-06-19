@@ -1,0 +1,10 @@
+*.wav
+*.mp3
+*.m4a
+*.ogg
+*.flac
+*.zip
+*.tmp
+Thumbs.db
+.DS_Store
+
