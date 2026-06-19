@@ -16,6 +16,25 @@ RUN_AUDIO_WORKBENCH.bat
 
 No server, Python, Node.js, account, API key, or internet connection is required when using the downloaded files.
 
+## Quick Guide
+
+1. Open the app.
+2. Choose an audio file.
+3. Check the analysis cards and the marked timeline sections.
+4. Pick a goal such as `Auto`, `Vocal clarity`, or `Clean low end`.
+5. Click the processing button.
+6. Compare the original and processed audio before saving.
+7. Export WAV only if the processed version is actually better.
+
+## Usage Guidelines
+
+- Keep the first pass conservative. This tool is meant to reduce obvious risks, not to radically remake a mix.
+- Listen to the marked risky sections with headphones or reliable speakers before trusting the result.
+- If the processed version sounds smaller, duller, distorted, or tiring, keep the original or try a lighter goal.
+- Do not stack many exports on top of each other. Re-processing an already processed file can make artifacts worse.
+- Keep a copy of the original file. The exported WAV is a new file, but it should not become your only source.
+- For important releases, treat this as a quick helper and still check the result in your normal listening environment.
+
 ## What It Does
 
 - Loads an audio file locally in the browser
@@ -41,6 +60,8 @@ This is not a professional mixing or mastering studio. It is a beginner helper f
 
 It does not perform AI stem separation, vocal isolation, or professional mastering.
 
+The analysis values are practical hints, not final truth. Your ears and the target platform still matter.
+
 ## Browser Support
 
 Use a current version of Chrome or Edge. Other modern browsers may work, but audio format support can vary.
@@ -53,3 +74,10 @@ This project can be served directly with GitHub Pages because it is a static HTM
 
 After enabling Pages, open the published URL and use the app in the browser.
 
+Recommended Pages setting:
+
+```text
+Source: Deploy from a branch
+Branch: main
+Folder: / (root)
+```
