@@ -447,6 +447,21 @@
       color: var(--muted);
       font-size: 13px;
     }
+    .playback-clock {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      margin: 8px 0 0;
+      padding: 5px 9px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .playback-clock.original { color: var(--accent); border-color: #b9ddcf; }
+    .playback-clock.processed { color: #2d6cdf; border-color: #cfe0ff; }
     .status { color: var(--muted); margin-top: 8px; }
     .result-list { margin: 0; padding-left: 20px; }
     .result-list li { margin: 6px 0; }
@@ -591,6 +606,7 @@
       <h2>구간 확인</h2>
       <canvas id="riskTimeline" class="timeline" width="900" height="180"></canvas>
       <p class="timeline-hint">파형 위쪽을 누르면 원본, 아래쪽을 누르면 보정본으로 해당 구간을 듣습니다.</p>
+      <p id="sectionPlaybackClock" class="playback-clock">재생 위치: -</p>
       <div class="legend">
         <span><i style="background:#b9ddcf"></i>보통</span>
         <span><i style="background:#f0d28c"></i>주의</span>
@@ -694,6 +710,7 @@
           <button id="abProcessedBtn" disabled>보정본 듣기</button>
         </div>
         <audio id="abAudio" controls></audio>
+        <p id="playbackClock" class="playback-clock">재생 위치: -</p>
         <p id="abNote" class="status">파일을 넣으면 원본을, 보정본을 만들면 같은 플레이어에서 번갈아 들을 수 있습니다.</p>
       </div>
       <div class="two">
@@ -773,6 +790,8 @@
       segmentPlayStartSec: null,
       segmentPlayEndSec: null,
       detailToggleNextKind: "original",
+      activePlayback: { player: null, kind: null },
+      playbackFrame: null,
       originalScore: null
     };
 
@@ -1062,6 +1081,136 @@
       const min = Math.floor(safe / 60);
       const sec = (safe % 60).toFixed(2).padStart(5, "0");
       return `${min}:${sec}`;
+    }
+
+    function audioKindFromUrl(audio) {
+      if (!audio?.src) return null;
+      if (state.processedUrl && audio.src === state.processedUrl) return "processed";
+      if (state.originalUrl && audio.src === state.originalUrl) return "original";
+      return null;
+    }
+
+    function playbackColor(kind) {
+      return kind === "processed" ? "#2d6cdf" : "#1f7a5f";
+    }
+
+    function playbackLabel(kind) {
+      return kind === "processed" ? "보정본" : "원본";
+    }
+
+    function getAudioDuration(kind, audio) {
+      if (Number.isFinite(audio?.duration) && audio.duration > 0) return audio.duration;
+      const buffer = kind === "processed" ? state.processedBuffer : state.originalBuffer;
+      return Number.isFinite(buffer?.duration) ? buffer.duration : 0;
+    }
+
+    function getPlaybackInfoFor(kind, playerId = null) {
+      const players = playerId ? [playerId] : ["abAudio", kind === "processed" ? "processedAudio" : "originalAudio"];
+      for (const id of players) {
+        const audio = $(id);
+        if (!audio) continue;
+        const currentKind = id === "abAudio" ? state.activePlayback.kind || audioKindFromUrl(audio) : audioKindFromUrl(audio);
+        if (currentKind !== kind) continue;
+        if (!Number.isFinite(audio.currentTime)) continue;
+        const isActive = state.activePlayback.player === id || (!audio.paused && !audio.ended);
+        if (!isActive) continue;
+        return {
+          audio,
+          kind,
+          player: id,
+          currentTime: clamp(audio.currentTime, 0, getAudioDuration(kind, audio) || audio.currentTime),
+          duration: getAudioDuration(kind, audio),
+          startSec: id === "abAudio" ? state.segmentPlayStartSec : null,
+          endSec: id === "abAudio" ? state.segmentPlayEndSec : null
+        };
+      }
+      return null;
+    }
+
+    function getCanvasPlaybackInfo(canvasId) {
+      if (canvasId === "riskTimeline") {
+        const kind = state.activePlayback.player === "abAudio" ? state.activePlayback.kind : state.segmentPlayKind;
+        return kind ? getPlaybackInfoFor(kind, "abAudio") : null;
+      }
+      if (canvasId === "processedWave") return getPlaybackInfoFor("processed");
+      if (canvasId === "originalWave") return getPlaybackInfoFor("original");
+      return null;
+    }
+
+    function drawPlayhead(ctx, canvas, playback) {
+      if (!playback || !Number.isFinite(playback.duration) || playback.duration <= 0) return;
+      const x = clamp(playback.currentTime / playback.duration, 0, 1) * canvas.width;
+      const color = playbackColor(playback.kind);
+
+      if (Number.isFinite(playback.startSec) && Number.isFinite(playback.endSec) && playback.endSec > playback.startSec) {
+        const startX = clamp(playback.startSec / playback.duration, 0, 1) * canvas.width;
+        const endX = clamp(playback.endSec / playback.duration, 0, 1) * canvas.width;
+        ctx.save();
+        ctx.fillStyle = playback.kind === "processed" ? "rgba(45, 108, 223, 0.12)" : "rgba(31, 122, 95, 0.12)";
+        ctx.fillRect(startX, 0, Math.max(2, endX - startX), canvas.height);
+        ctx.restore();
+      }
+
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x - 7, 10);
+      ctx.lineTo(x + 7, 10);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function updatePlaybackClock() {
+      const playback = getPlaybackInfoFor(state.activePlayback.kind || "original", state.activePlayback.player)
+        || getPlaybackInfoFor("original")
+        || getPlaybackInfoFor("processed");
+      const clocks = [$("playbackClock"), $("sectionPlaybackClock")].filter(Boolean);
+      clocks.forEach((clock) => {
+        clock.classList.remove("original", "processed");
+        if (!playback) {
+          clock.textContent = "재생 위치: -";
+          return;
+        }
+        clock.classList.add(playback.kind);
+        clock.textContent = `${playbackLabel(playback.kind)} ${formatTime(playback.currentTime)} / ${formatTime(playback.duration)}`;
+      });
+    }
+
+    function redrawPlaybackCanvases() {
+      drawRiskTimeline($("riskTimeline"), state.segments);
+      drawWave($("originalWave"), state.originalBuffer);
+      drawWave($("processedWave"), state.processedBuffer);
+      updatePlaybackClock();
+    }
+
+    function anyAudioPlaying() {
+      return ["abAudio", "originalAudio", "processedAudio"].some((id) => {
+        const audio = $(id);
+        return audio && !audio.paused && !audio.ended;
+      });
+    }
+
+    function startPlaybackLoop() {
+      if (state.playbackFrame) return;
+      const tick = () => {
+        redrawPlaybackCanvases();
+        state.playbackFrame = anyAudioPlaying() ? requestAnimationFrame(tick) : null;
+      };
+      state.playbackFrame = requestAnimationFrame(tick);
+    }
+
+    function markActivePlayback(player, kind = null) {
+      state.activePlayback = { player, kind: kind || audioKindFromUrl($(player)) };
+      redrawPlaybackCanvases();
+      startPlaybackLoop();
     }
 
     function formatRange(startSec, endSec) {
@@ -2035,6 +2184,8 @@
         ctx.strokeRect(x + 2, 2, Math.max(4, selectedWidth - 4), canvas.height - 4);
         ctx.lineWidth = 1;
       }
+
+      drawPlayhead(ctx, canvas, getCanvasPlaybackInfo(canvas.id));
     }
 
     function updateSegmentAnalysis(segments) {
@@ -2497,6 +2648,7 @@
         ctx.lineTo(x, y2);
       }
       ctx.stroke();
+      drawPlayhead(ctx, canvas, getCanvasPlaybackInfo(canvas.id));
     }
 
     function buildCurve(amount) {
@@ -2875,6 +3027,8 @@
       state.segmentPlayKind = kind;
       state.segmentPlayStartSec = null;
       state.segmentPlayEndSec = null;
+      state.activePlayback = { player: "abAudio", kind };
+      redrawPlaybackCanvases();
       updateSegmentSourceDisplay(kind, null, null);
       $("segmentPlayNote").textContent = "구간 듣기를 누르면 선택한 구간만 확인할 수 있습니다.";
       $("abNote").textContent = kind === "processed"
@@ -2893,6 +3047,8 @@
       state.segmentPlayKind = kind;
       state.segmentPlayStartSec = startSec;
       state.segmentPlayEndSec = endSec;
+      state.activePlayback = { player: "abAudio", kind };
+      redrawPlaybackCanvases();
       const target = getDetailToggleTargetSegment();
       if (target && Math.abs(target.startSec - startSec) < 0.03 && Math.abs(target.endSec - endSec) < 0.03) {
         state.detailToggleNextKind = state.processedUrl && kind === "original" ? "processed" : "original";
@@ -2985,8 +3141,10 @@
       state.processedBuffer = null;
       state.analysis = null;
       state.segments = [];
+      state.activePlayback = { player: null, kind: null };
       drawWave($("originalWave"), state.originalBuffer);
       drawWave($("processedWave"), null);
+      updatePlaybackClock();
       $("fileNote").textContent = `${file.name} 로드 완료`;
       $("analyzeBtn").disabled = false;
       $("processBtn").disabled = false;
@@ -3213,6 +3371,33 @@
       const index = Math.min(state.segments.length - 1, Math.floor(ratio * state.segments.length));
       selectSegmentByIndex(state.segments[index].index, true, playbackKind);
     });
+
+    function pauseOtherPlayers(activeId) {
+      ["abAudio", "originalAudio", "processedAudio"].forEach((id) => {
+        if (id === activeId) return;
+        const audio = $(id);
+        if (audio && !audio.paused) audio.pause();
+      });
+    }
+
+    function bindPlaybackProgress(id, kindResolver) {
+      const audio = $(id);
+      audio.addEventListener("play", () => {
+        pauseOtherPlayers(id);
+        markActivePlayback(id, kindResolver());
+      });
+      ["timeupdate", "seeked", "pause", "ended", "loadedmetadata"].forEach((eventName) => {
+        audio.addEventListener(eventName, () => {
+          const kind = kindResolver();
+          if (kind) state.activePlayback = { player: id, kind };
+          redrawPlaybackCanvases();
+        });
+      });
+    }
+
+    bindPlaybackProgress("abAudio", () => state.segmentPlayKind || audioKindFromUrl($("abAudio")));
+    bindPlaybackProgress("originalAudio", () => "original");
+    bindPlaybackProgress("processedAudio", () => state.processedUrl ? "processed" : null);
 
     $("segmentAutoStopToggle").addEventListener("change", () => {
       const mode = $("segmentAutoStopToggle").checked ? "켜짐" : "꺼짐";
