@@ -318,11 +318,35 @@
       font-weight: 700;
       font-size: 13px;
     }
+    .view-tabs {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: -2px 0 14px;
+      padding: 10px 0;
+      background: var(--bg);
+    }
+    .tab-button.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    [data-view] { display: none; }
+    [data-view].active-view { display: block; }
     @media (max-width: 760px) {
       main { padding: 12px; }
       section { overflow: hidden; }
       .grid, .two, .score-row { grid-template-columns: 1fr; }
       .goal-grid { grid-template-columns: 1fr; }
+      .view-tabs {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        position: static;
+      }
+      .view-tabs button { width: 100%; }
       .workflow-panel { grid-template-columns: 1fr; }
       .workflow-actions { justify-content: stretch; }
       .workflow-actions button { width: 100%; }
@@ -349,12 +373,20 @@
   </header>
 
   <main>
-    <section class="warn">
+    <nav class="view-tabs" aria-label="화면 선택">
+      <button class="tab-button active" data-tab="main">메인</button>
+      <button class="tab-button" data-tab="sections">구간 확인</button>
+      <button class="tab-button" data-tab="result">보정 결과</button>
+      <button class="tab-button" data-tab="settings">설정</button>
+      <button class="tab-button" data-tab="compare">비교</button>
+    </nav>
+
+    <section class="warn active-view" data-view="main">
       <h2>경계</h2>
       <p>이 도구는 전문 믹싱/마스터링을 대체하지 않습니다. 초보자가 과한 음량, 클리핑, 먹먹함, 날카로움을 덜 망치게 돕는 로컬 후보정 도구입니다.</p>
     </section>
 
-    <section>
+    <section class="active-view" data-view="main">
       <h2>1. 파일 넣기</h2>
       <div class="drop">
         <input id="fileInput" type="file" accept="audio/*">
@@ -362,7 +394,7 @@
       </div>
     </section>
 
-    <section>
+    <section class="active-view" data-view="main">
       <h2>2. 자동 점검</h2>
       <div class="grid">
         <div id="peakMetric" class="metric"><strong id="peakValue">-</strong><span>최대 소리</span><small id="peakHelp">가장 큰 순간이 얼마나 0 dB에 가까운지 봅니다.</small></div>
@@ -393,8 +425,8 @@
       <p id="analysisNote" class="status">아직 분석 전입니다.</p>
     </section>
 
-    <section>
-      <h2>3. 구간별 위험 타임라인</h2>
+    <section class="active-view" data-view="main">
+      <h2>3. 다음 할 일</h2>
       <div id="segmentSummary" class="diagnosis">
         <strong>다시 들어볼 구간</strong>
         <p>자동 점검을 누르면 구간별로 튀는 부분, 무음, 주의 구간을 표시합니다.</p>
@@ -410,6 +442,10 @@
           <button id="quickSaveBtn" disabled>저장</button>
         </div>
       </div>
+    </section>
+
+    <section data-view="sections">
+      <h2>구간 확인</h2>
       <canvas id="riskTimeline" class="timeline" width="900" height="90"></canvas>
       <div class="legend">
         <span><i style="background:#b9ddcf"></i>보통</span>
@@ -427,8 +463,8 @@
       </table>
     </section>
 
-    <section>
-      <h2>4. 추천 보정</h2>
+    <section data-view="settings">
+      <h2>설정</h2>
       <div id="recommendationBox" class="diagnosis">
         <strong>앱의 추천</strong>
         <p>자동 점검을 누르면 어떤 보정부터 비교할지 추천합니다.</p>
@@ -459,8 +495,8 @@
       <p id="processNote" class="status">과한 음압보다 안전한 비교본을 우선합니다.</p>
     </section>
 
-    <section>
-      <h2>5. 보정 전/후 변화</h2>
+    <section data-view="result">
+      <h2>보정 결과</h2>
       <div id="afterSummary" class="diagnosis">
         <strong>보정 결과 요약</strong>
         <p>추천 보정을 만들면 원본과 보정본의 수치 차이를 보여줍니다.</p>
@@ -490,8 +526,8 @@
       </div>
     </section>
 
-    <section>
-      <h2>6. 원본 / 보정본 비교</h2>
+    <section data-view="compare">
+      <h2>원본 / 보정본 비교</h2>
       <div class="ab-panel">
         <h3>A/B 빠른 비교</h3>
         <div class="actions">
@@ -515,8 +551,8 @@
       </div>
     </section>
 
-    <section class="note">
-      <h2>7. 읽는 법</h2>
+    <section class="note" data-view="compare">
+      <h2>읽는 법</h2>
       <ul class="result-list">
         <li><span class="pill">최대 소리</span> 0 dB에 가까우면 찢어질 위험이 큽니다.</li>
         <li><span class="pill">평균 소리</span> 너무 낮으면 작게 들리고, 너무 높으면 눌린 느낌이 납니다.</li>
@@ -575,6 +611,17 @@
     };
 
     const $ = (id) => document.getElementById(id);
+
+    function selectView(viewName) {
+      const safeView = document.querySelector(`[data-view="${viewName}"]`) ? viewName : "main";
+      document.querySelectorAll(".tab-button").forEach((button) => {
+        button.classList.toggle("active", button.dataset.tab === safeView);
+      });
+      document.querySelectorAll("[data-view]").forEach((panel) => {
+        panel.classList.toggle("active-view", panel.dataset.view === safeView);
+      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
 
     function ensureContext() {
       if (!state.audioContext) {
@@ -2158,6 +2205,10 @@
         $("fileNote").textContent = "브라우저가 이 파일을 해석하지 못했습니다. wav 또는 일반 mp3로 다시 시도하세요.";
         console.error(error);
       }
+    });
+
+    document.querySelectorAll(".tab-button").forEach((button) => {
+      button.addEventListener("click", () => selectView(button.dataset.tab));
     });
 
     $("analyzeBtn").addEventListener("click", async () => {

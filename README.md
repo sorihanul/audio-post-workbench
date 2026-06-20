@@ -20,11 +20,10 @@ No server, Python, Node.js, account, API key, or internet connection is required
 
 1. Open the app.
 2. Choose an audio file.
-3. Check the analysis cards and the marked timeline sections.
-4. Pick a goal such as `Auto`, `Vocal clarity`, or `Clean low end`.
-5. Click the processing button.
-6. Compare the original and processed audio before saving.
-7. Export WAV only if the processed version is actually better.
+3. Run the automatic check on the Main tab.
+4. Use `Auto-select suspect section`.
+5. Process and save from the same Main tab workflow.
+6. Open Section Check, Result, Settings, or Compare only when needed.
 
 ## Usage Guidelines
 
@@ -38,6 +37,7 @@ No server, Python, Node.js, account, API key, or internet connection is required
 ## What It Does
 
 - Loads an audio file locally in the browser
+- Splits the app into Main, Section Check, Result, Settings, and Compare tabs
 - Shows basic safety checks such as peak, loudness, clipping risk, muddiness, harshness, high-frequency note tails, stereo balance, mono risk, and silence
 - Checks small-speaker risk from stereo/phase behavior
 - Marks sections that should be listened to again
