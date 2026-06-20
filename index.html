@@ -637,44 +637,116 @@
       };
     }
 
+    function tailHarshRank(label) {
+      return { "낮음": 0, "보통": 1, "세부 확인": 2, "주의": 3, "높음": 4 }[label] || 0;
+    }
+
+    function classifyFineTailHit(score, ratio, tailDb) {
+      if (score >= 1.18 || (ratio >= 0.72 && tailDb > -50)) return "높음";
+      if (score >= 0.92 || (ratio >= 0.56 && tailDb > -54)) return "주의";
+      if (score >= 0.66 || (ratio >= 0.42 && tailDb > -58)) return "세부 확인";
+      return "보통";
+    }
+
+    function computeFineTailHits(samples, start, end, sampleRate) {
+      const safeStart = Math.max(0, Math.min(start, samples.length - 1));
+      const safeEnd = Math.max(safeStart + 1, Math.min(end, samples.length));
+      const bodyLength = Math.max(512, Math.floor(sampleRate * 0.18));
+      const tailLength = Math.max(384, Math.floor(sampleRate * 0.11));
+      const step = Math.max(128, Math.floor(sampleRate * 0.025));
+      const hits = [];
+
+      for (let tailStart = safeStart + bodyLength; tailStart + tailLength <= safeEnd; tailStart += step) {
+        const bodyStart = tailStart - bodyLength;
+        const tailEnd = tailStart + tailLength;
+        const body = computeBasicFromSamples(samples, bodyStart, tailStart);
+        const tail = computeBasicFromSamples(samples, tailStart, tailEnd);
+        const diffRms = computeDiffRmsFromSamples(samples, tailStart, tailEnd);
+        const ratio = diffRms / Math.max(tail.rms, 0.000001);
+        const bodyDb = dbNumber(body.rms);
+        const tailDb = dbNumber(tail.rms);
+        const decayDb = bodyDb - tailDb;
+
+        if (body.peak < 0.08 || tailDb < -62) continue;
+        const score = (ratio * 0.82)
+          + clamp((tailDb + 60) / 24, 0, 1) * 0.34
+          + clamp((body.peak - 0.08) / 0.42, 0, 1) * 0.22
+          + clamp(decayDb / 16, 0, 1) * 0.2;
+        const label = classifyFineTailHit(score, ratio, tailDb);
+        if (tailHarshRank(label) >= tailHarshRank("세부 확인")) {
+          hits.push({
+            label,
+            score,
+            ratio,
+            tailDb,
+            startSec: tailStart / sampleRate,
+            endSec: tailEnd / sampleRate
+          });
+        }
+      }
+
+      hits.sort((a, b) => tailHarshRank(b.label) - tailHarshRank(a.label) || b.score - a.score);
+      const filtered = [];
+      hits.forEach((hit) => {
+        const overlaps = filtered.some((item) => Math.abs(item.startSec - hit.startSec) < 0.16);
+        if (!overlaps && filtered.length < 3) filtered.push(hit);
+      });
+      return filtered;
+    }
+
     function computeTailHarshnessFromSamples(samples, start, end, sampleRate) {
       const safeStart = Math.max(0, Math.min(start, samples.length - 1));
       const safeEnd = Math.max(safeStart + 1, Math.min(end, samples.length));
       const length = Math.max(1, safeEnd - safeStart);
       const windowLength = Math.min(length, Math.max(512, Math.floor(sampleRate * 0.78)));
       const step = Math.max(256, Math.floor(sampleRate * 0.12));
-      const rank = { "낮음": 0, "보통": 1, "주의": 2, "높음": 3 };
       let worst = computeTailHarshnessWindow(samples, safeStart, safeEnd);
 
       if (length > windowLength) {
         for (let windowStart = safeStart; windowStart + Math.floor(windowLength * 0.6) < safeEnd; windowStart += step) {
           const item = computeTailHarshnessWindow(samples, windowStart, Math.min(safeEnd, windowStart + windowLength));
-          if ((rank[item.tailHarshLabel] || 0) > (rank[worst.tailHarshLabel] || 0) || item.tailHarshRatio > worst.tailHarshRatio) {
+          if (tailHarshRank(item.tailHarshLabel) > tailHarshRank(worst.tailHarshLabel) || item.tailHarshRatio > worst.tailHarshRatio) {
             worst = item;
           }
         }
       }
 
-      return worst;
+      const fineHits = computeFineTailHits(samples, safeStart, safeEnd, sampleRate);
+      if (fineHits.length) {
+        const best = fineHits[0];
+        if (tailHarshRank(best.label) > tailHarshRank(worst.tailHarshLabel)) {
+          worst = {
+            tailHarshLabel: best.label,
+            tailHarshRatio: best.ratio,
+            tailHarshDb: best.tailDb,
+            tailHarshNote: describeTailHarshness(best.label, best.ratio)
+          };
+        }
+      }
+
+      return {
+        ...worst,
+        tailHarshHits: fineHits
+      };
     }
 
     function describeTailHarshness(label, ratio) {
       if (label === "높음") return `큰 음 끝에 치치거림 후보가 강합니다. 고역 꼬리 완화를 먼저 들어보세요.`;
       if (label === "주의") return `끝음에 고역 잔여음 후보가 있습니다. 헤드폰과 스피커에서 다시 확인하세요.`;
+      if (label === "세부 확인") return `아주 짧은 고역 찌름 후보가 있습니다. 표시된 세부 위치를 다시 들어보세요.`;
       if (label === "낮음") return `끝음 치치거림 후보는 낮습니다.`;
       return `끝음 고역 꼬리는 크게 튀지 않습니다.`;
     }
 
     function summarizeTailHarshness(buffer) {
       const samples = getMixedSamples(buffer);
-      const segmentCount = Math.min(8, Math.max(1, Math.ceil(buffer.duration)));
+      const segmentCount = getSegmentCount(buffer);
       let worst = { tailHarshLabel: "낮음", tailHarshRatio: 0, tailHarshDb: -120 };
       for (let index = 0; index < segmentCount; index++) {
         const start = Math.floor((samples.length * index) / segmentCount);
         const end = Math.floor((samples.length * (index + 1)) / segmentCount);
         const item = computeTailHarshnessFromSamples(samples, start, end, buffer.sampleRate);
-        const rank = { "낮음": 0, "보통": 1, "주의": 2, "높음": 3 };
-        if ((rank[item.tailHarshLabel] || 0) > (rank[worst.tailHarshLabel] || 0) || item.tailHarshRatio > worst.tailHarshRatio) {
+        if (tailHarshRank(item.tailHarshLabel) > tailHarshRank(worst.tailHarshLabel) || item.tailHarshRatio > worst.tailHarshRatio) {
           worst = item;
         }
       }
@@ -688,12 +760,30 @@
       return `${min}:${sec}`;
     }
 
+    function formatTimePrecise(seconds) {
+      const safe = Math.max(0, seconds);
+      const min = Math.floor(safe / 60);
+      const sec = (safe % 60).toFixed(2).padStart(5, "0");
+      return `${min}:${sec}`;
+    }
+
+    function formatRange(startSec, endSec) {
+      if (Math.abs(endSec - startSec) < 1) {
+        return `${formatTimePrecise(startSec)}-${formatTimePrecise(endSec)}`;
+      }
+      return `${formatTime(startSec)}-${formatTime(endSec)}`;
+    }
+
     function classifySegment(metrics) {
       const rmsDb = dbNumber(metrics.rms);
       if (rmsDb < -50) return "무음";
       if (metrics.peak >= 0.985 || metrics.clippedRatio > 0.0005) return "위험";
       if (metrics.peak >= 0.94 || rmsDb > -8 || metrics.dynamic < 3) return "주의";
       return "보통";
+    }
+
+    function getSegmentCount(buffer) {
+      return Math.min(72, Math.max(1, Math.ceil(buffer.duration / 4)));
     }
 
     function describeSegment(segment) {
@@ -711,7 +801,7 @@
 
     function analyzeSegments(buffer) {
       const samples = getMixedSamples(buffer);
-      const segmentCount = Math.min(8, Math.max(1, Math.ceil(buffer.duration)));
+      const segmentCount = getSegmentCount(buffer);
       const segments = [];
       for (let index = 0; index < segmentCount; index++) {
         const start = Math.floor((samples.length * index) / segmentCount);
@@ -954,6 +1044,7 @@
       const label = labelTailHarsh(analysis);
       if (label === "높음") return "큰 음 끝부분에서 치치거림 후보가 강합니다. 구간표의 고역 꼬리 완화를 먼저 비교하세요.";
       if (label === "주의") return "끝음에 고역 잔여음 후보가 있습니다. 보정본과 원본을 같은 구간에서 비교하세요.";
+      if (label === "세부 확인") return "아주 짧은 고역 찌름 후보가 있습니다. 구간표의 세부 위치를 다시 들어보세요.";
       if (label === "낮음") return "끝음 치치거림 후보는 낮습니다.";
       return "끝음 고역 꼬리는 크게 튀지 않습니다.";
     }
@@ -979,6 +1070,7 @@
       if (sharp !== "보통") warnings.push("날카로움이 있어 고역을 더 올리는 보정은 피하세요.");
       if (tailHarsh === "높음") warnings.push("큰 음 끝의 치치거림 후보가 있어 고역 꼬리 완화를 먼저 비교하세요.");
       else if (tailHarsh === "주의") warnings.push("끝음 고역 잔여음 후보가 있어 해당 구간을 다시 들어보세요.");
+      else if (tailHarsh === "세부 확인") warnings.push("짧은 고역 찌름 후보가 있어 표시된 세부 위치를 다시 들어보세요.");
       if (analysis.balanceLabel === "치우침") warnings.push("좌우 밸런스가 치우쳐 있어 중심이 한쪽으로 밀릴 수 있습니다.");
       if (analysis.monoLabel === "위험") warnings.push("모노에서 소리가 크게 줄어 위상 충돌 가능성이 있습니다.");
       if (analysis.phaseLabel === "위험") warnings.push("작은 스피커에서 좌우가 서로 지워질 수 있습니다.");
@@ -1120,6 +1212,10 @@
         (() => {
           const edit = getSegmentEdit(segment.index);
           const editText = edit ? `<small class="segment-edit-note">선택됨: ${edit.label}</small>` : "";
+          const tailHits = segment.tailHarshHits || [];
+          const hitText = tailHits.length
+            ? `<br><small>세부 위치: ${tailHits.map((hit) => `${formatTimePrecise(hit.startSec)} ${hit.label}`).join(", ")}</small>`
+            : "";
           return (
         `<tr>
           <td>${formatTime(segment.startSec)}-${formatTime(segment.endSec)}</td>
@@ -1129,7 +1225,7 @@
           <td>${segment.phaseLabel}</td>
           <td>${segment.tailHarshLabel}</td>
           <td>
-            ${segment.note}<br><small>${segment.phaseNote}</small><br><small>${segment.tailHarshNote}</small>
+            ${segment.note}<br><small>${segment.phaseNote}</small><br><small>${segment.tailHarshNote}</small>${hitText}
             ${editText}
             <div class="mini-actions">
               <button data-segment-play="original" data-start="${segment.startSec}" data-end="${segment.endSec}">원본 듣기</button>
@@ -1148,11 +1244,12 @@
       const firstDanger = segments.find((segment) => segment.risk === "위험");
       const firstWarning = segments.find((segment) => segment.risk === "주의");
       const firstPhaseRisk = segments.find((segment) => segment.phaseLabel === "위험" || segment.phaseLabel === "확인");
-      const firstTailHarsh = segments.find((segment) => segment.tailHarshLabel === "높음" || segment.tailHarshLabel === "주의");
+      const firstTailHarsh = segments.find((segment) => tailHarshRank(segment.tailHarshLabel) >= tailHarshRank("세부 확인"));
       const firstSilence = segments.find((segment) => segment.risk === "무음");
       const target = firstDanger || firstTailHarsh || firstWarning || firstPhaseRisk || firstSilence;
       if (target) {
-        $("segmentSummary").querySelector("p").textContent = `${formatTime(target.startSec)}-${formatTime(target.endSec)} 구간을 먼저 확인하세요. 판정: ${target.risk}, 작은 스피커: ${target.phaseLabel}, 고역 꼬리: ${target.tailHarshLabel}. ${target.note}`;
+        const detail = target.tailHarshHits?.length ? ` 세부 위치: ${formatTimePrecise(target.tailHarshHits[0].startSec)}.` : "";
+        $("segmentSummary").querySelector("p").textContent = `${formatTime(target.startSec)}-${formatTime(target.endSec)} 구간을 먼저 확인하세요. 판정: ${target.risk}, 작은 스피커: ${target.phaseLabel}, 고역 꼬리: ${target.tailHarshLabel}.${detail} ${target.note}`;
       } else {
         $("segmentSummary").querySelector("p").textContent = "구간별로 크게 튀는 부분은 보이지 않습니다. 원본과 보정본을 같은 음량으로 비교하세요.";
       }
@@ -1185,11 +1282,14 @@
       if (type !== "clear") {
         const isTail = type === "tail";
         const segmentLength = Math.max(0.1, segment.endSec - segment.startSec);
+        const fineHit = isTail ? segment.tailHarshHits?.[0] : null;
+        const tailStart = fineHit ? Math.max(segment.startSec, fineHit.startSec - 0.05) : segment.startSec + segmentLength * 0.48;
+        const tailEnd = fineHit ? Math.min(segment.endSec, fineHit.endSec + 0.08) : segment.endSec;
         state.segmentEdits.push({
           index,
           type,
-          startSec: isTail ? segment.startSec + segmentLength * 0.48 : segment.startSec,
-          endSec: segment.endSec,
+          startSec: isTail ? tailStart : segment.startSec,
+          endSec: isTail ? tailEnd : segment.endSec,
           label: type === "lower" ? "튀는 구간 응급처치" : type === "tail" ? "고역 꼬리 완화" : "귀 아픈 구간 완화",
           gainDb: type === "lower" ? -1.8 : type === "tail" ? -0.35 : -0.7,
           softenMix: type === "soften" ? 0.28 : type === "tail" ? 0.42 : 0
@@ -1198,7 +1298,7 @@
       updateSegmentAnalysis(state.segments);
       const message = type === "clear"
         ? `${formatTime(segment.startSec)}-${formatTime(segment.endSec)} 구간 응급처치를 해제했습니다.`
-        : `${formatTime(segment.startSec)}-${formatTime(segment.endSec)} 구간에 '${type === "lower" ? "튀는 구간 응급처치" : type === "tail" ? "고역 꼬리 완화" : "귀 아픈 구간 완화"}'를 선택했습니다. 앞뒤 연결부까지 부드럽게 적용됩니다.`;
+        : `${type === "tail" ? formatRange(state.segmentEdits.find((edit) => edit.index === index)?.startSec || segment.startSec, state.segmentEdits.find((edit) => edit.index === index)?.endSec || segment.endSec) : `${formatTime(segment.startSec)}-${formatTime(segment.endSec)}`} 구간에 '${type === "lower" ? "튀는 구간 응급처치" : type === "tail" ? "고역 꼬리 완화" : "귀 아픈 구간 완화"}'를 선택했습니다. 앞뒤 연결부까지 부드럽게 적용됩니다.`;
       clearProcessedAfterEdit(message);
     }
 
@@ -1207,7 +1307,7 @@
       if (labelClip(analysis) === "높음" || analysis.peak >= 0.985) return "깨짐";
       if (segments.some((segment) => segment.risk === "위험")) return "위험 구간";
       if (segments.some((segment) => segment.phaseLabel === "위험") || analysis.phaseLabel === "위험") return "작은 스피커";
-      if (segments.some((segment) => segment.tailHarshLabel === "높음" || segment.tailHarshLabel === "주의") || labelTailHarsh(analysis) === "높음" || labelTailHarsh(analysis) === "주의") return "고역 꼬리";
+      if (segments.some((segment) => tailHarshRank(segment.tailHarshLabel) >= tailHarshRank("세부 확인")) || tailHarshRank(labelTailHarsh(analysis)) >= tailHarshRank("세부 확인")) return "고역 꼬리";
       if (analysis.monoLabel === "위험") return "모노";
       if (analysis.balanceLabel === "치우침") return "좌우";
       if (labelDynamic(analysis) === "많이 눌림") return "눌림";
@@ -1231,6 +1331,7 @@
       const phaseCheckSegments = segments.filter((segment) => segment.phaseLabel === "확인").length;
       const tailHarshSegments = segments.filter((segment) => segment.tailHarshLabel === "높음").length;
       const tailWarnSegments = segments.filter((segment) => segment.tailHarshLabel === "주의").length;
+      const tailDetailSegments = segments.filter((segment) => segment.tailHarshLabel === "세부 확인").length;
 
       if (clip === "높음") score -= 28;
       else if (clip === "주의" || analysis.peak >= 0.96) score -= 14;
@@ -1241,6 +1342,7 @@
       else if (sharp === "주의") score -= 5;
       if (tailHarsh === "높음") score -= 10;
       else if (tailHarsh === "주의") score -= 5;
+      else if (tailHarsh === "세부 확인") score -= 3;
       if (analysis.balanceLabel === "치우침") score -= 10;
       else if (analysis.balanceLabel === "주의") score -= 5;
       if (analysis.monoLabel === "위험") score -= 16;
@@ -1256,6 +1358,7 @@
       score -= Math.min(8, phaseCheckSegments * 2);
       score -= Math.min(12, tailHarshSegments * 4);
       score -= Math.min(6, tailWarnSegments * 2);
+      score -= Math.min(4, tailDetailSegments);
       return Math.max(0, Math.min(100, Math.round(score)));
     }
 
@@ -1451,7 +1554,7 @@
       updateMetricTone("dynamicMetric", dynamic === "많이 눌림" ? "warnish" : "");
       updateMetricTone("mudMetric", mud === "높음" ? "risky" : mud === "주의" ? "warnish" : "");
       updateMetricTone("sharpMetric", sharp === "높음" ? "risky" : sharp === "주의" ? "warnish" : "");
-      updateMetricTone("tailHarshMetric", tailHarsh === "높음" ? "risky" : tailHarsh === "주의" ? "warnish" : "");
+      updateMetricTone("tailHarshMetric", tailHarsh === "높음" ? "risky" : tailHarsh === "주의" || tailHarsh === "세부 확인" ? "warnish" : "");
       updateMetricTone("balanceMetric", analysis.balanceLabel === "치우침" ? "risky" : analysis.balanceLabel === "주의" ? "warnish" : "");
       updateMetricTone("monoMetric", analysis.monoLabel === "위험" ? "risky" : analysis.monoLabel === "주의" ? "warnish" : "");
       updateMetricTone("phaseMetric", analysis.phaseLabel === "위험" ? "risky" : analysis.phaseLabel === "확인" ? "warnish" : "");
@@ -1559,6 +1662,8 @@
         plan.airGain -= 0.35 * weight;
       } else if (tailHarsh === "주의") {
         plan.deharshCut -= 0.45 * weight;
+      } else if (tailHarsh === "세부 확인") {
+        plan.deharshCut -= 0.25 * weight;
       }
       if (clip !== "낮음" || dynamic === "많이 눌림") plan.deharshCut -= 0.35 * weight;
 
@@ -1670,7 +1775,7 @@
         }
 
         if (plan) {
-          const range = `${formatTime(edit.startSec)}-${formatTime(edit.endSec)}`;
+          const range = formatRange(edit.startSec, edit.endSec);
           const log = edit.type === "lower"
             ? `${range} 구간과 앞뒤 연결부를 자연스럽게 낮췄습니다.`
             : edit.type === "tail"
