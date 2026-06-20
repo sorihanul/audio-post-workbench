@@ -368,6 +368,169 @@
       gap: 8px;
       justify-content: flex-end;
     }
+    .beginner-decision {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      margin-top: 14px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+    }
+    .beginner-decision.ready {
+      border-color: #9bcbb9;
+      background: var(--accent-soft);
+    }
+    .beginner-decision.caution {
+      border-color: #f0d28c;
+      background: #fffaf0;
+    }
+    .beginner-decision.danger {
+      border-color: #f3b6b5;
+      background: #fff5f5;
+    }
+    .decision-kicker {
+      display: inline-flex;
+      margin-bottom: 6px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: #eef2f7;
+      color: #42526a;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .beginner-decision.ready .decision-kicker { background: #dff5ec; color: #167555; }
+    .beginner-decision.caution .decision-kicker { background: #fff3cf; color: #7a5200; }
+    .beginner-decision.danger .decision-kicker { background: #ffe4e2; color: #8f1f1f; }
+    .decision-headline {
+      display: block;
+      font-size: 22px;
+      line-height: 1.25;
+    }
+    .decision-detail {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+    .decision-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+      min-width: 260px;
+    }
+    .decision-steps {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .decision-step {
+      min-height: 74px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+    }
+    .decision-step strong {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      margin-right: 6px;
+      border-radius: 999px;
+      background: #eef2f7;
+      color: #42526a;
+      font-size: 13px;
+    }
+    .decision-step.done strong { background: var(--accent); color: #fff; }
+    .decision-step.active {
+      border-color: #9bcbb9;
+      background: var(--accent-soft);
+    }
+    .decision-step span {
+      font-weight: 800;
+    }
+    .decision-step small {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+    .candidate-box {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fbfcfe;
+    }
+    .candidate-box > strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+    .candidate-list {
+      display: grid;
+      gap: 8px;
+    }
+    .candidate-card {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+    }
+    .candidate-card.selected {
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px var(--accent);
+    }
+    .candidate-card.warning { border-color: #f0d28c; }
+    .candidate-card.danger { border-color: #f3b6b5; }
+    .candidate-card.silence { border-color: #cfe0ff; }
+    .candidate-order {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      background: #eef2f7;
+      color: #42526a;
+      font-weight: 800;
+    }
+    .candidate-main strong {
+      display: block;
+      margin-bottom: 3px;
+      line-height: 1.25;
+    }
+    .candidate-main p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .candidate-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: flex-end;
+      min-width: 260px;
+    }
+    .candidate-actions button {
+      min-height: 34px;
+      padding: 5px 9px;
+      font-size: 13px;
+    }
+    .candidate-actions button.active {
+      background: var(--accent-soft);
+      border-color: #9bcbb9;
+      color: var(--accent);
+    }
     .preset { display: flex; flex-wrap: wrap; gap: 8px; }
     .preset button.active { background: var(--accent-soft); border-color: #9bcbb9; color: var(--accent); }
     .goal-box {
@@ -549,6 +712,23 @@
       .workflow-panel { grid-template-columns: 1fr; }
       .workflow-actions { justify-content: stretch; }
       .workflow-actions button { width: 100%; }
+      .beginner-decision { grid-template-columns: 1fr; }
+      .decision-actions {
+        min-width: 0;
+        justify-content: stretch;
+      }
+      .decision-actions button { width: 100%; }
+      .decision-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .candidate-card {
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: flex-start;
+      }
+      .candidate-actions {
+        grid-column: 1 / -1;
+        min-width: 0;
+        justify-content: stretch;
+      }
+      .candidate-actions button { flex: 1 1 140px; }
       .compare-table {
         display: block;
         max-width: 100%;
@@ -600,6 +780,24 @@
         <button id="analyzeBtn" class="primary" disabled>자동 점검</button>
       </div>
       <p id="analysisNote" class="status">아직 분석 전입니다.</p>
+      <div id="beginnerDecision" class="beginner-decision">
+        <div>
+          <span id="decisionKicker" class="decision-kicker">대기</span>
+          <strong id="decisionHeadline" class="decision-headline">파일을 넣고 자동 점검을 누르세요</strong>
+          <p id="decisionDetail" class="decision-detail">수치보다 먼저 볼 결론과 다음 버튼을 여기서 크게 보여줍니다.</p>
+        </div>
+        <div class="decision-actions">
+          <button id="decisionPrimaryBtn" class="primary" disabled>자동 점검</button>
+          <button id="decisionSecondaryBtn" disabled>구간 보기</button>
+          <button id="decisionTertiaryBtn" disabled>비교</button>
+        </div>
+      </div>
+      <div class="decision-steps">
+        <div id="decisionStepFile" class="decision-step"><strong>1</strong><span>파일</span><small>노래를 넣으면 시작합니다.</small></div>
+        <div id="decisionStepCheck" class="decision-step"><strong>2</strong><span>점검</span><small>소리 위험과 후보 구간을 찾습니다.</small></div>
+        <div id="decisionStepFix" class="decision-step"><strong>3</strong><span>보정</span><small>필요하면 보정본을 만듭니다.</small></div>
+        <div id="decisionStepCompare" class="decision-step"><strong>4</strong><span>비교</span><small>같은 위치에서 듣고 저장합니다.</small></div>
+      </div>
       <div class="grid">
         <div id="peakMetric" class="metric"><strong id="peakValue">-</strong><span>최대 소리</span><small id="peakHelp">가장 큰 순간이 얼마나 0 dB에 가까운지 봅니다.</small></div>
         <div id="rmsMetric" class="metric"><strong id="rmsValue">-</strong><span>평균 소리</span><small id="rmsHelp">노래 전체가 체감상 어느 정도 크게 들릴지 봅니다.</small></div>
@@ -640,6 +838,21 @@
           <button id="quickSelectBtn" disabled>의심 구간 자동 선택</button>
           <button id="quickProcessBtn" class="primary" disabled>보정 만들기</button>
           <button id="quickSaveBtn" disabled>저장</button>
+        </div>
+      </div>
+      <div id="candidateListBox" class="candidate-box">
+        <strong>먼저 들어볼 후보</strong>
+        <div id="candidateList" class="candidate-list">
+          <article class="candidate-card">
+            <span class="candidate-order">-</span>
+            <div class="candidate-main">
+              <strong>자동 점검 후 후보가 표시됩니다.</strong>
+              <p>후보를 누르면 해당 구간을 바로 들을 수 있습니다.</p>
+            </div>
+            <div class="candidate-actions">
+              <button disabled>원본 듣기</button>
+            </div>
+          </article>
         </div>
       </div>
     </section>
@@ -2258,6 +2471,7 @@
         updateSegmentSourceDisplay(state.segmentPlayKind, state.segmentPlayStartSec, state.segmentPlayEndSec);
       }
       updateDetailToggleButton();
+      markCandidateControls();
     }
 
     function getSelectionPlaybackKind() {
@@ -2446,11 +2660,197 @@
         || null;
     }
 
+    function candidateScore(segment) {
+      if (!segment) return 0;
+      let score = rankRisk(segment) * 100;
+      if (segment.risk === "위험") score += 45;
+      if (segment.risk === "주의") score += 22;
+      if (tailHarshRank(segment.tailHarshLabel) >= tailHarshRank("세부 확인")) score += 38;
+      if (segment.phaseLabel === "위험") score += 32;
+      if (segment.phaseLabel === "확인") score += 16;
+      score += Math.max(0, dbNumber(segment.peak) + 24);
+      return score;
+    }
+
+    function getCandidateSegments(limit = 5) {
+      if (!state.segments.length) return [];
+      return [...state.segments]
+        .filter((segment) => rankRisk(segment) >= 3)
+        .sort((a, b) => candidateScore(b) - candidateScore(a))
+        .slice(0, limit);
+    }
+
     function getSuggestedEditType(segment) {
       if (!segment) return "soften";
       if (tailHarshRank(segment.tailHarshLabel) >= tailHarshRank("세부 확인")) return "tail";
       if (segment.risk === "위험") return "lower";
       return "soften";
+    }
+
+    function setDecisionButton(id, label, action, disabled = false, isPrimary = false) {
+      const button = $(id);
+      if (!button) return;
+      button.textContent = label;
+      button.dataset.decisionAction = action || "";
+      button.disabled = disabled || !action;
+      button.classList.toggle("primary", Boolean(isPrimary));
+    }
+
+    function updateDecisionSteps() {
+      const hasFile = Boolean(state.originalBuffer);
+      const hasAnalysis = Boolean(state.analysis && state.segments.length);
+      const hasProcessed = Boolean(state.processedBuffer);
+      const steps = [
+        ["decisionStepFile", hasFile, !hasFile],
+        ["decisionStepCheck", hasAnalysis, hasFile && !hasAnalysis],
+        ["decisionStepFix", hasProcessed, hasAnalysis && !hasProcessed],
+        ["decisionStepCompare", false, hasProcessed]
+      ];
+      steps.forEach(([id, done, active]) => {
+        const step = $(id);
+        if (!step) return;
+        step.classList.toggle("done", Boolean(done));
+        step.classList.toggle("active", Boolean(active));
+      });
+    }
+
+    function updateBeginnerDecision(message = "") {
+      const box = $("beginnerDecision");
+      if (!box) return;
+      const hasFile = Boolean(state.originalBuffer);
+      const hasAnalysis = Boolean(state.analysis && state.segments.length);
+      const hasEdits = state.segmentEdits.length > 0;
+      const hasProcessed = Boolean(state.processedBuffer);
+      const priority = getPrioritySegment();
+      box.className = "beginner-decision";
+      updateDecisionSteps();
+
+      const applyDecision = (tone, kicker, headline, detail, buttons) => {
+        box.classList.add(tone);
+        $("decisionKicker").textContent = kicker;
+        $("decisionHeadline").textContent = headline;
+        $("decisionDetail").textContent = detail;
+        setDecisionButton("decisionPrimaryBtn", buttons[0].label, buttons[0].action, buttons[0].disabled, true);
+        setDecisionButton("decisionSecondaryBtn", buttons[1].label, buttons[1].action, buttons[1].disabled, false);
+        setDecisionButton("decisionTertiaryBtn", buttons[2].label, buttons[2].action, buttons[2].disabled, false);
+      };
+
+      if (!hasFile) {
+        applyDecision("caution", "대기", "파일을 넣으면 시작합니다", "파일을 넣은 뒤 자동 점검을 누르면 위험 구간과 추천 보정을 보여줍니다.", [
+          { label: "자동 점검", action: "", disabled: true },
+          { label: "구간 보기", action: "", disabled: true },
+          { label: "비교", action: "", disabled: true }
+        ]);
+      } else if (!hasAnalysis) {
+        applyDecision("caution", "다음 버튼", "자동 점검을 먼저 누르세요", "앱이 소리 크기, 깨짐 위험, 먹먹함, 날카로움, 작은 스피커 위험을 먼저 확인합니다.", [
+          { label: "자동 점검", action: "analyze" },
+          { label: "설정 보기", action: "settings" },
+          { label: "구간 보기", action: "", disabled: true }
+        ]);
+      } else if (hasProcessed) {
+        applyDecision("ready", "준비 완료", "보정본이 준비됐습니다", message || "중앙 파형에서 같은 위치를 찍어 원본과 보정본을 번갈아 듣고, 괜찮으면 저장하세요.", [
+          { label: "비교 화면", action: "compare" },
+          { label: "저장", action: "save" },
+          { label: "후보 구간", action: "sections" }
+        ]);
+      } else if (hasEdits) {
+        applyDecision("caution", "예약 있음", "예약한 보정을 반영하세요", `${state.segmentEdits.length}개 구간 보정이 예약되어 있습니다. 실제 파일에는 아직 반영되지 않았으니 보정 만들기를 누르세요.`, [
+          { label: "보정 만들기", action: "process" },
+          { label: "후보 구간", action: "sections" },
+          { label: "설정 보기", action: "settings" }
+        ]);
+      } else if (priority) {
+        const tone = priority.risk === "위험" ? "danger" : "caution";
+        applyDecision(tone, "먼저 확인", `${formatTime(priority.startSec)}-${formatTime(priority.endSec)} 구간을 먼저 들어보세요`, `${riskPlainLabel(priority)} 후보입니다. 들어본 뒤 거슬리면 보정 예약을 하고, 애매하면 전체 보정본만 만들어 비교하세요.`, [
+          { label: "후보 듣기", action: "playPriority" },
+          { label: "보정 예약", action: "select" },
+          { label: "보정 만들기", action: "process" }
+        ]);
+      } else {
+        applyDecision("ready", "낮은 위험", "크게 튀는 후보는 낮습니다", "그래도 체감 차이는 직접 들어봐야 합니다. 보정본을 만들어 원본과 같은 위치에서 비교하세요.", [
+          { label: "보정 만들기", action: "process" },
+          { label: "구간 보기", action: "sections" },
+          { label: "설정 보기", action: "settings" }
+        ]);
+      }
+    }
+
+    function renderCandidateList() {
+      const list = $("candidateList");
+      if (!list) return;
+      const hasFile = Boolean(state.originalBuffer);
+      const hasAnalysis = Boolean(state.analysis && state.segments.length);
+      if (!hasFile) {
+        list.innerHTML = `
+          <article class="candidate-card">
+            <span class="candidate-order">-</span>
+            <div class="candidate-main">
+              <strong>파일을 넣으면 후보를 찾을 수 있습니다.</strong>
+              <p>자동 점검 후 여기에 먼저 들어볼 구간이 표시됩니다.</p>
+            </div>
+            <div class="candidate-actions"><button disabled>대기</button></div>
+          </article>
+        `;
+        return;
+      }
+      if (!hasAnalysis) {
+        list.innerHTML = `
+          <article class="candidate-card">
+            <span class="candidate-order">1</span>
+            <div class="candidate-main">
+              <strong>자동 점검을 누르세요.</strong>
+              <p>앱이 직접 문제 후보를 골라서 이 목록에 올립니다.</p>
+            </div>
+            <div class="candidate-actions"><button data-decision-action="analyze" class="primary">자동 점검</button></div>
+          </article>
+        `;
+        return;
+      }
+
+      const candidates = getCandidateSegments(5);
+      if (!candidates.length) {
+        list.innerHTML = `
+          <article class="candidate-card selected">
+            <span class="candidate-order">OK</span>
+            <div class="candidate-main">
+              <strong>뚜렷하게 먼저 들을 문제 구간은 낮습니다.</strong>
+              <p>보정본을 만들어 전체를 같은 위치에서 비교하는 쪽이 좋습니다.</p>
+            </div>
+            <div class="candidate-actions">
+              <button data-decision-action="process" class="primary">보정 만들기</button>
+              <button data-decision-action="sections">구간 보기</button>
+            </div>
+          </article>
+        `;
+        return;
+      }
+
+      list.innerHTML = candidates.map((segment, order) => {
+        const edit = getSegmentEdit(segment.index);
+        const editType = getSuggestedEditType(segment);
+        return `
+          <article class="candidate-card ${riskClass(segment.risk)} ${state.selectedSegmentIndex === segment.index ? "selected" : ""}" data-candidate-card="${segment.index}">
+            <span class="candidate-order">${order + 1}</span>
+            <div class="candidate-main">
+              <strong>${formatTime(segment.startSec)}-${formatTime(segment.endSec)} · ${riskPlainLabel(segment)}</strong>
+              <p>${segmentPlainText(segment)}${edit ? ` 예약됨: ${edit.label}` : ""}</p>
+            </div>
+            <div class="candidate-actions">
+              <button data-candidate-play="original" data-index="${segment.index}">원본 듣기</button>
+              <button data-candidate-play="processed" data-index="${segment.index}" ${state.processedBuffer ? "" : "disabled"}>보정본 듣기</button>
+              <button data-candidate-edit="${editType}" data-index="${segment.index}" class="${edit ? "active" : ""}">보정 예약</button>
+              <button data-candidate-open="${segment.index}">구간 열기</button>
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function markCandidateControls() {
+      document.querySelectorAll("[data-candidate-card]").forEach((card) => {
+        const index = Number(card.dataset.candidateCard);
+        card.classList.toggle("selected", index === state.selectedSegmentIndex);
+      });
     }
 
     function updateQuickWorkflow(message = "") {
@@ -2479,6 +2879,9 @@
       } else {
         $("quickStatus").textContent = "큰 위험은 낮습니다. 필요하면 보정 만들기를 눌러 비교본만 만들어보세요.";
       }
+      updateBeginnerDecision(message);
+      renderCandidateList();
+      markCandidateControls();
     }
 
     function selectPrioritySegment() {
@@ -3587,9 +3990,70 @@
       window.setTimeout(() => URL.revokeObjectURL(url), 60000);
     });
 
+    function playPriorityCandidate() {
+      const segment = getPrioritySegment() || getCandidateSegments(1)[0];
+      if (!segment) return;
+      selectSegmentByIndex(segment.index, true, "original");
+      selectView("sections");
+    }
+
+    function runDecisionAction(action) {
+      if (!action) return;
+      if (action === "analyze") $("analyzeBtn").click();
+      else if (action === "settings") selectView("settings");
+      else if (action === "sections") selectView("sections");
+      else if (action === "compare") selectView("compare");
+      else if (action === "process") $("processBtn").click();
+      else if (action === "save") $("saveBtn").click();
+      else if (action === "select") selectPrioritySegment();
+      else if (action === "playPriority") playPriorityCandidate();
+    }
+
     $("quickSelectBtn").addEventListener("click", selectPrioritySegment);
     $("quickProcessBtn").addEventListener("click", () => $("processBtn").click());
     $("quickSaveBtn").addEventListener("click", () => $("saveBtn").click());
+    document.querySelector(".decision-actions").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-decision-action]");
+      if (!button || button.disabled) return;
+      runDecisionAction(button.dataset.decisionAction);
+    });
+    $("candidateList").addEventListener("click", (event) => {
+      const decisionButton = event.target.closest("[data-decision-action]");
+      if (decisionButton && !decisionButton.disabled) {
+        runDecisionAction(decisionButton.dataset.decisionAction);
+        return;
+      }
+
+      const playButton = event.target.closest("[data-candidate-play]");
+      if (playButton && !playButton.disabled) {
+        const segment = state.segments.find((item) => item.index === Number(playButton.dataset.index));
+        if (segment) {
+          selectSegmentByIndex(segment.index, false);
+          playSegment(playButton.dataset.candidatePlay, segment.startSec, segment.endSec);
+          selectView("sections");
+        }
+        return;
+      }
+
+      const editButton = event.target.closest("[data-candidate-edit]");
+      if (editButton && !editButton.disabled) {
+        setSegmentEdit(Number(editButton.dataset.index), editButton.dataset.candidateEdit);
+        return;
+      }
+
+      const openButton = event.target.closest("[data-candidate-open]");
+      if (openButton) {
+        selectSegmentByIndex(Number(openButton.dataset.candidateOpen), false);
+        selectView("sections");
+        return;
+      }
+
+      const card = event.target.closest("[data-candidate-card]");
+      if (card) {
+        selectSegmentByIndex(Number(card.dataset.candidateCard), true, "original");
+        selectView("sections");
+      }
+    });
 
     function handleSegmentAction(event) {
       const areaEditButton = event.target.closest("[data-area-edit]");
@@ -3774,6 +4238,7 @@
 
     $("abOriginalBtn").addEventListener("click", () => setAbSource("original", null, true));
     $("abProcessedBtn").addEventListener("click", () => setAbSource("processed", null, true));
+    updateQuickWorkflow();
     drawAbWave($("abWave"));
   </script>
 </body>
