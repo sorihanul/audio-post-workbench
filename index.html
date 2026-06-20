@@ -425,6 +425,14 @@
       border-radius: 8px;
       background: #fbfcfe;
     }
+    .timeline {
+      cursor: pointer;
+    }
+    .timeline-hint {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
     .status { color: var(--muted); margin-top: 8px; }
     .result-list { margin: 0; padding-left: 20px; }
     .result-list li { margin: 6px 0; }
@@ -568,6 +576,7 @@
     <section data-view="sections">
       <h2>구간 확인</h2>
       <canvas id="riskTimeline" class="timeline" width="900" height="180"></canvas>
+      <p class="timeline-hint">파형 위쪽을 누르면 원본, 아래쪽을 누르면 보정본으로 해당 구간을 듣습니다.</p>
       <div class="legend">
         <span><i style="background:#b9ddcf"></i>보통</span>
         <span><i style="background:#f0d28c"></i>주의</span>
@@ -1858,7 +1867,7 @@
       if (shouldPlay) playSegment(getSelectionPlaybackKind(), area.startSec, area.endSec);
     }
 
-    function selectSegmentByIndex(index, shouldPlay = false) {
+    function selectSegmentByIndex(index, shouldPlay = false, playbackKind = null) {
       const segment = state.segments.find((item) => item.index === index);
       if (!segment) return;
       state.selectedSegmentIndex = segment.index;
@@ -1867,7 +1876,7 @@
       updateSelectedArea(area);
       markSelectedControls();
       drawRiskTimeline($("riskTimeline"), state.segments);
-      if (shouldPlay) playSegment(getSelectionPlaybackKind(), segment.startSec, segment.endSec);
+      if (shouldPlay) playSegment(playbackKind || getSelectionPlaybackKind(), segment.startSec, segment.endSec);
     }
 
     function drawRiskTimeline(canvas, segments) {
@@ -1917,6 +1926,26 @@
         ctx.stroke();
       }
 
+      ctx.save();
+      ctx.globalAlpha = 0.92;
+      ctx.fillStyle = "#e3edff";
+      ctx.fillRect(0, 0, canvas.width, 28);
+      ctx.fillStyle = state.processedBuffer ? "#dff5ec" : "#eef2f7";
+      ctx.fillRect(0, canvas.height / 2, canvas.width, 28);
+      ctx.strokeStyle = "#8ea0b8";
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(0, canvas.height / 2);
+      ctx.lineTo(canvas.width, canvas.height / 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = "bold 14px Segoe UI, Arial";
+      ctx.fillStyle = "#244c91";
+      ctx.fillText("위쪽: 원본 듣기", 14, 20);
+      ctx.fillStyle = state.processedBuffer ? "#167555" : "#667085";
+      ctx.fillText(state.processedBuffer ? "아래쪽: 보정본 듣기" : "아래쪽: 보정본 없음", 14, canvas.height / 2 + 20);
+      ctx.restore();
+
       segments.forEach((segment, index) => {
         const x = index * width;
         ctx.strokeStyle = "#ffffff";
@@ -1936,7 +1965,7 @@
         }
         ctx.fillStyle = "#17202a";
         ctx.font = "12px Segoe UI, Arial";
-        ctx.fillText(`${index + 1}`, x + 8, 22);
+        ctx.fillText(`${index + 1}`, x + 8, 44);
         ctx.fillText(formatTime(segment.startSec), x + 8, canvas.height - 12);
       });
     }
@@ -3083,8 +3112,10 @@
       if (!state.segments.length) return;
       const rect = $("riskTimeline").getBoundingClientRect();
       const ratio = Math.max(0, Math.min(0.999, (event.clientX - rect.left) / Math.max(rect.width, 1)));
+      const verticalRatio = Math.max(0, Math.min(1, (event.clientY - rect.top) / Math.max(rect.height, 1)));
+      const playbackKind = verticalRatio < 0.5 ? "original" : "processed";
       const index = Math.min(state.segments.length - 1, Math.floor(ratio * state.segments.length));
-      selectSegmentByIndex(state.segments[index].index, true);
+      selectSegmentByIndex(state.segments[index].index, true, playbackKind);
     });
 
     $("segmentAutoStopToggle").addEventListener("change", () => {
