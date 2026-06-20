@@ -1843,6 +1843,10 @@
       }
     }
 
+    function getSelectionPlaybackKind() {
+      return state.segmentPlayKind === "processed" && state.processedUrl ? "processed" : "original";
+    }
+
     function selectAreaByIndex(index, shouldPlay = false) {
       const area = state.segmentAreas.find((item) => item.index === index);
       if (!area) return;
@@ -1851,7 +1855,7 @@
       updateSelectedArea(area);
       markSelectedControls();
       drawRiskTimeline($("riskTimeline"), state.segments);
-      if (shouldPlay) playSegment("original", area.startSec, area.endSec);
+      if (shouldPlay) playSegment(getSelectionPlaybackKind(), area.startSec, area.endSec);
     }
 
     function selectSegmentByIndex(index, shouldPlay = false) {
@@ -1863,7 +1867,7 @@
       updateSelectedArea(area);
       markSelectedControls();
       drawRiskTimeline($("riskTimeline"), state.segments);
-      if (shouldPlay) playSegment("original", segment.startSec, segment.endSec);
+      if (shouldPlay) playSegment(getSelectionPlaybackKind(), segment.startSec, segment.endSec);
     }
 
     function drawRiskTimeline(canvas, segments) {
