@@ -449,6 +449,11 @@
     .timeline {
       cursor: pointer;
     }
+    .ab-wave {
+      height: 150px;
+      margin-top: 10px;
+      cursor: pointer;
+    }
     .timeline-hint {
       margin: 8px 0 0;
       color: var(--muted);
@@ -761,6 +766,8 @@
           <button id="abProcessedBtn" disabled>보정본 듣기</button>
         </div>
         <audio id="abAudio" preload="auto" hidden></audio>
+        <canvas id="abWave" class="ab-wave" width="900" height="180"></canvas>
+        <p class="timeline-hint">파형을 누르면 원본과 보정본이 같은 위치로 이동합니다. 보정본이 있으면 위쪽은 원본, 아래쪽은 보정본입니다.</p>
         <p id="playbackClock" class="playback-clock">재생 위치: -</p>
         <p id="abNote" class="status">파일을 넣으면 원본을, 보정본을 만들면 같은 플레이어에서 번갈아 들을 수 있습니다.</p>
       </div>
@@ -1224,6 +1231,7 @@
         const kind = state.segmentPlayKind || state.activePlayback.kind;
         return kind ? getPlaybackInfoFor(kind) : null;
       }
+      if (canvasId === "abWave") return getPlaybackInfoFor(state.activePlayback.kind || "original") || getPlaybackInfoFor("original") || getPlaybackInfoFor("processed");
       if (canvasId === "processedWave") return getPlaybackInfoFor("processed");
       if (canvasId === "originalWave") return getPlaybackInfoFor("original");
       return null;
@@ -1275,6 +1283,7 @@
 
     function redrawPlaybackCanvases() {
       drawRiskTimeline($("riskTimeline"), state.segments);
+      drawAbWave($("abWave"));
       drawWave($("originalWave"), state.originalBuffer);
       drawWave($("processedWave"), state.processedBuffer);
       updatePlaybackClock();
@@ -2490,6 +2499,7 @@
       $("saveBtn").disabled = true;
       $("abProcessedBtn").disabled = true;
       drawWave($("processedWave"), null);
+      drawAbWave($("abWave"));
       resetComparison();
       $("processedScore").textContent = "-";
       $("scoreDelta").textContent = "-";
@@ -2674,6 +2684,7 @@
         $("saveBtn").disabled = true;
         $("abProcessedBtn").disabled = true;
         drawWave($("processedWave"), null);
+        drawAbWave($("abWave"));
         resetComparison();
         $("processedScore").textContent = "-";
         $("scoreDelta").textContent = "-";
@@ -2699,6 +2710,7 @@
         $("saveBtn").disabled = true;
         $("abProcessedBtn").disabled = true;
         drawWave($("processedWave"), null);
+        drawAbWave($("abWave"));
         resetComparison();
         $("processedScore").textContent = "-";
         $("scoreDelta").textContent = "-";
@@ -2815,6 +2827,67 @@
       updateMetricTone("leadSilenceMetric", analysis.leadSilenceSec >= 2 ? "warnish" : "");
       updateMetricTone("tailSilenceMetric", analysis.tailSilenceSec >= 2 ? "warnish" : "");
       $("analysisNote").textContent = `간이 분석 완료: ${state.originalBuffer.duration.toFixed(1)}초, ${state.originalBuffer.numberOfChannels}채널, ${state.originalBuffer.sampleRate} Hz`;
+    }
+
+    function drawAbWave(canvas) {
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fbfcfe";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "#d8dee8";
+      ctx.strokeRect(0.5, 0.5, canvas.width - 1, canvas.height - 1);
+      ctx.strokeStyle = "#d8dee8";
+      ctx.beginPath();
+      ctx.moveTo(0, canvas.height / 2);
+      ctx.lineTo(canvas.width, canvas.height / 2);
+      ctx.stroke();
+
+      const drawBufferWave = (buffer, color, clipTop = null, clipHeight = null) => {
+        if (!buffer) return;
+        const samples = getMixedSamples(buffer);
+        const center = canvas.height / 2;
+        const amp = canvas.height * 0.38;
+        const step = Math.max(1, Math.floor(samples.length / canvas.width));
+        if (Number.isFinite(clipTop) && Number.isFinite(clipHeight)) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(0, clipTop, canvas.width, clipHeight);
+          ctx.clip();
+        }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        for (let x = 0; x < canvas.width; x++) {
+          let min = 1;
+          let max = -1;
+          const start = x * step;
+          for (let i = 0; i < step && start + i < samples.length; i++) {
+            const value = samples[start + i];
+            if (value < min) min = value;
+            if (value > max) max = value;
+          }
+          ctx.moveTo(x, center - max * amp);
+          ctx.lineTo(x, center - min * amp);
+        }
+        ctx.stroke();
+        if (Number.isFinite(clipTop) && Number.isFinite(clipHeight)) ctx.restore();
+      };
+
+      if (!state.originalBuffer) {
+        ctx.fillStyle = "#667085";
+        ctx.font = "14px Segoe UI, Arial";
+        ctx.fillText("파일을 넣으면 여기서 빠르게 위치를 찍어 들을 수 있습니다.", 18, 92);
+        return;
+      }
+
+      if (state.processedBuffer) {
+        drawBufferWave(state.originalBuffer, "#1f7a5f", 0, canvas.height / 2);
+        drawBufferWave(state.processedBuffer, "#2d6cdf", canvas.height / 2, canvas.height / 2);
+      } else {
+        drawBufferWave(state.originalBuffer, "#1f7a5f");
+      }
+
+      drawPlayhead(ctx, canvas, getCanvasPlaybackInfo(canvas.id));
     }
 
     function drawWave(canvas, buffer) {
@@ -3350,6 +3423,7 @@
       state.activePlayback = { player: null, kind: null };
       drawWave($("originalWave"), state.originalBuffer);
       drawWave($("processedWave"), null);
+      drawAbWave($("abWave"));
       updatePlaybackClock();
       $("fileNote").textContent = `${file.name} 로드 완료`;
       $("analyzeBtn").disabled = false;
@@ -3473,6 +3547,7 @@
         updateChangeSoundExplanation(state.analysis, processedAnalysis);
         updateProcessedScore(state.analysis, processedAnalysis, buildProcessLog(state.analysis, processedAnalysis, presetLabel, goalLabel, $("fadeToggle").checked, plan), processedSegments);
         drawWave($("processedWave"), processed);
+        drawAbWave($("abWave"));
         const wav = encodeWav(processed);
         if (state.processedUrl) URL.revokeObjectURL(state.processedUrl);
         state.processedUrl = URL.createObjectURL(wav);
@@ -3583,6 +3658,16 @@
       selectSegmentByIndex(state.segments[index].index, true, playbackKind);
     });
 
+    $("abWave").addEventListener("click", (event) => {
+      if (!state.originalBuffer) return;
+      const rect = $("abWave").getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(0.999, (event.clientX - rect.left) / Math.max(rect.width, 1)));
+      const verticalRatio = Math.max(0, Math.min(1, (event.clientY - rect.top) / Math.max(rect.height, 1)));
+      const targetTime = ratio * state.originalBuffer.duration;
+      const playbackKind = state.processedBuffer && verticalRatio >= 0.5 ? "processed" : "original";
+      setAbSource(playbackKind, targetTime, true);
+    });
+
     function pauseOtherPlayers(activeId) {
       if (isAbEnginePlayer(activeId)) {
         const legacy = $("abAudio");
@@ -3689,6 +3774,7 @@
 
     $("abOriginalBtn").addEventListener("click", () => setAbSource("original", null, true));
     $("abProcessedBtn").addEventListener("click", () => setAbSource("processed", null, true));
+    drawAbWave($("abWave"));
   </script>
 </body>
 </html>
