@@ -1959,11 +1959,18 @@
         ctx.globalAlpha = 1;
       });
 
-      const drawLaneWave = (buffer, center, color) => {
+      const drawSplitWave = (buffer, color, clipTop = null, clipHeight = null) => {
         const samples = buffer ? getMixedSamples(buffer) : null;
         if (!samples?.length) return;
-        const amp = canvas.height * 0.18;
+        const center = canvas.height / 2;
+        const amp = canvas.height * 0.36;
         const step = Math.max(1, Math.floor(samples.length / canvas.width));
+        if (Number.isFinite(clipTop) && Number.isFinite(clipHeight)) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(0, clipTop, canvas.width, clipHeight);
+          ctx.clip();
+        }
         ctx.strokeStyle = color;
         ctx.lineWidth = 1.8;
         ctx.beginPath();
@@ -1980,19 +1987,25 @@
           ctx.lineTo(x, center - min * amp);
         }
         ctx.stroke();
+        if (Number.isFinite(clipTop) && Number.isFinite(clipHeight)) {
+          ctx.restore();
+        }
       };
 
-      drawLaneWave(state.originalBuffer, canvas.height * 0.25, "#1f7a5f");
-      drawLaneWave(state.processedBuffer, canvas.height * 0.75, "#2d6cdf");
-
-      ctx.save();
-      ctx.strokeStyle = "#8ea0b8";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, canvas.height / 2);
-      ctx.lineTo(canvas.width, canvas.height / 2);
-      ctx.stroke();
-      ctx.restore();
+      if (state.processedBuffer) {
+        drawSplitWave(state.originalBuffer, "#1f7a5f", 0, canvas.height / 2);
+        drawSplitWave(state.processedBuffer, "#2d6cdf", canvas.height / 2, canvas.height / 2);
+        ctx.save();
+        ctx.strokeStyle = "#8ea0b8";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height / 2);
+        ctx.lineTo(canvas.width, canvas.height / 2);
+        ctx.stroke();
+        ctx.restore();
+      } else {
+        drawSplitWave(state.originalBuffer, "#1f7a5f");
+      }
 
       segments.forEach((segment, index) => {
         const x = index * width;
