@@ -1746,7 +1746,7 @@
         <div class="mini-actions">
           <button data-segment-play="original" data-start="${segment.startSec}" data-end="${segment.endSec}">원본 듣기</button>
           <button data-segment-play="processed" data-start="${segment.startSec}" data-end="${segment.endSec}" ${state.processedBuffer ? "" : "disabled"}>보정본 듣기</button>
-          <button data-segment-edit="lower" data-index="${segment.index}" class="${edit?.type === "lower" ? "active" : ""}">이 구간 낮추기 예약</button>
+          <button data-segment-edit="lower" data-index="${segment.index}" class="${edit?.type === "lower" ? "active" : ""}">튀는 소리 줄이기 예약</button>
           <button data-segment-edit="soften" data-index="${segment.index}" class="${edit?.type === "soften" ? "active" : ""}">이 구간 부드럽게 예약</button>
           <button data-segment-edit="tail" data-index="${segment.index}" class="${edit?.type === "tail" ? "active" : ""}">끝 소리 완화 예약</button>
           <button data-segment-edit="clear" data-index="${segment.index}" ${edit ? "" : "disabled"}>예약 해제</button>
@@ -1761,7 +1761,7 @@
           <button data-area-play="processed" data-area-index="${area.index}" ${state.processedBuffer ? "" : "disabled"}>보정본 영역 듣기</button>
           <button data-area-nav="prev" data-area-index="${area.index}" ${area.index <= 0 ? "disabled" : ""}>이전 영역</button>
           <button data-area-nav="next" data-area-index="${area.index}" ${area.index >= state.segmentAreas.length - 1 ? "disabled" : ""}>다음 영역</button>
-          <button data-area-edit="lower" data-area-index="${area.index}" class="${edit?.type === "lower" ? "active" : ""}">이 영역 낮추기 예약</button>
+          <button data-area-edit="lower" data-area-index="${area.index}" class="${edit?.type === "lower" ? "active" : ""}">튀는 소리 줄이기 예약</button>
           <button data-area-edit="soften" data-area-index="${area.index}" class="${edit?.type === "soften" ? "active" : ""}">이 영역 부드럽게 예약</button>
           <button data-area-edit="tail" data-area-index="${area.index}" class="${edit?.type === "tail" ? "active" : ""}">끝 소리 완화 예약</button>
           <button data-area-edit="clear" data-area-index="${area.index}" ${edit ? "" : "disabled"}>예약 해제</button>
@@ -2063,7 +2063,7 @@
           type,
           startSec: isTail ? tailStart : segment.startSec,
           endSec: isTail ? tailEnd : segment.endSec,
-          label: type === "lower" ? "세부 구간 낮추기 예약" : type === "tail" ? "끝 소리 완화 예약" : "세부 구간 부드럽게 예약",
+          label: type === "lower" ? "튀는 소리 줄이기 예약" : type === "tail" ? "끝 소리 완화 예약" : "세부 구간 부드럽게 예약",
           gainDb: type === "lower" ? -1.8 : type === "tail" ? -0.35 : -0.7,
           softenMix: type === "soften" ? 0.28 : type === "tail" ? 0.42 : 0,
           bridgeSec: 0.22
@@ -2087,7 +2087,7 @@
           type,
           startSec: area.startSec,
           endSec: area.endSec,
-          label: type === "lower" ? "이 영역 낮추기 예약" : type === "tail" ? "끝 소리 완화 예약" : "이 영역 부드럽게 예약",
+          label: type === "lower" ? "튀는 소리 줄이기 예약" : type === "tail" ? "끝 소리 완화 예약" : "이 영역 부드럽게 예약",
           gainDb: type === "lower" ? -1.5 : type === "tail" ? -0.35 : -0.6,
           softenMix: type === "soften" ? 0.24 : type === "tail" ? 0.38 : 0,
           bridgeSec: 0.45
@@ -2577,7 +2577,7 @@
         if (plan) {
           const range = formatRange(edit.startSec, edit.endSec);
           const log = edit.type === "lower"
-            ? `${range} 구간과 앞뒤 연결부를 자연스럽게 낮췄습니다.`
+            ? `${range} 구간과 앞뒤 연결부의 튀는 소리를 자연스럽게 줄였습니다.`
             : edit.type === "tail"
               ? `${range} 끝부분과 앞뒤 연결부의 치치거림 후보를 부드럽게 줄였습니다.`
               : `${range} 구간과 앞뒤 연결부의 귀 아픈 느낌을 부드럽게 줄였습니다.`;
