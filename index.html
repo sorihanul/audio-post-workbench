@@ -977,6 +977,7 @@
         <div class="actions">
           <button id="abOriginalBtn" disabled>원본 듣기</button>
           <button id="abProcessedBtn" disabled>보정본 듣기</button>
+          <button id="abStopBtn" disabled>멈춤</button>
         </div>
         <audio id="abAudio" preload="auto" hidden></audio>
         <canvas id="abWave" class="ab-wave" width="900" height="180"></canvas>
@@ -3697,6 +3698,7 @@
       }
       $("abOriginalBtn").classList.toggle("primary", kind === "original");
       $("abProcessedBtn").classList.toggle("primary", kind === "processed");
+      $("abStopBtn").disabled = false;
       state.segmentPlayKind = kind;
       state.segmentPlayStartSec = null;
       state.segmentPlayEndSec = null;
@@ -3747,6 +3749,7 @@
       $("abAudio").removeAttribute("src");
       $("abOriginalBtn").disabled = true;
       $("abProcessedBtn").disabled = true;
+      $("abStopBtn").disabled = true;
       $("abOriginalBtn").classList.remove("primary");
       $("abProcessedBtn").classList.remove("primary");
       state.activePlayback = { player: null, kind: null };
@@ -4184,6 +4187,24 @@
       redrawPlaybackCanvases();
     }
 
+    function stopAbPlayback() {
+      ["originalAudio", "processedAudio", "abAudio"].forEach((id) => {
+        const audio = $(id);
+        if (audio) audio.pause();
+      });
+      state.segmentStopEndSec = null;
+      state.segmentStopLabel = "";
+      $("segmentPlayNote").textContent = "재생을 멈췄습니다. 다른 구간을 누르면 그 구간부터 다시 들을 수 있습니다.";
+      $("abNote").textContent = "재생을 멈췄습니다. 원본 듣기나 보정본 듣기를 누르면 같은 위치에서 다시 비교합니다.";
+      updateSegmentSourceDisplay(
+        state.segmentPlayKind,
+        state.segmentPlayStartSec,
+        state.segmentPlayEndSec,
+        "재생을 멈췄습니다."
+      );
+      redrawPlaybackCanvases();
+    }
+
     bindPlaybackProgress("abAudio", () => state.segmentPlayKind || audioKindFromUrl($("abAudio")));
     bindPlaybackProgress("originalAudio", () => "original");
     bindPlaybackProgress("processedAudio", () => state.processedUrl ? "processed" : null);
@@ -4238,6 +4259,7 @@
 
     $("abOriginalBtn").addEventListener("click", () => setAbSource("original", null, true));
     $("abProcessedBtn").addEventListener("click", () => setAbSource("processed", null, true));
+    $("abStopBtn").addEventListener("click", stopAbPlayback);
     updateQuickWorkflow();
     drawAbWave($("abWave"));
   </script>
