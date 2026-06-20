@@ -41,7 +41,7 @@ No server, Python, Node.js, account, API key, or internet connection is required
 - Shows basic safety checks such as peak, loudness, clipping risk, muddiness, harshness, high-frequency note tails, stereo balance, mono risk, and silence
 - Checks small-speaker risk from stereo/phase behavior
 - Marks sections to review directly on the waveform
-- Shows all section buttons for direct section review
+- Starts with broad regions, with detailed sections expandable only when needed
 - Can auto-stop playback at the end of a selected section
 - Keeps suspect-section selection, processing, and saving in one quick workflow panel
 - Shows precise timestamps for short high-frequency spike candidates

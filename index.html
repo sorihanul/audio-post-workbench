@@ -272,6 +272,18 @@
     .segment-strip button.warning { border-color: #f0d28c; }
     .segment-strip button.danger { border-color: #f3b6b5; }
     .segment-strip button.silence { border-color: #cfe0ff; }
+    details.detail-segments {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #fbfcfe;
+    }
+    details.detail-segments summary {
+      cursor: pointer;
+      font-weight: 700;
+    }
+    details.detail-segments .segment-strip { margin-top: 10px; }
     .workflow-panel {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -522,13 +534,19 @@
       </div>
       <p id="segmentPlayNote" class="status">구간 듣기를 누르면 선택한 구간만 확인할 수 있습니다.</p>
       <div id="selectedSegmentBox" class="selected-segment">
-        <strong>선택한 구간</strong>
-        <div id="selectedSegmentDetail"><p>자동 점검 후 파형을 누르면 그 구간만 들을 수 있습니다.</p></div>
+        <strong>선택한 영역</strong>
+        <div id="selectedSegmentDetail"><p>자동 점검 후 파형을 누르면 그 영역만 들을 수 있습니다.</p></div>
       </div>
-      <h3>전체 구간</h3>
+      <h3>큰 영역</h3>
+      <div id="areaStrip" class="segment-strip">
+        <button disabled>자동 점검 후 큰 영역이 표시됩니다.</button>
+      </div>
+      <details id="detailSegmentsBox" class="detail-segments">
+        <summary>선택한 영역 세부 구간 보기</summary>
       <div id="segmentStrip" class="segment-strip">
-        <button disabled>자동 점검 후 전체 구간이 표시됩니다.</button>
+          <button disabled>큰 영역을 선택하면 세부 구간이 표시됩니다.</button>
       </div>
+      </details>
     </section>
 
     <section data-view="settings">
@@ -672,8 +690,10 @@
       goal: "auto",
       analysis: null,
       segments: [],
+      segmentAreas: [],
       segmentEdits: [],
       selectedSegmentIndex: null,
+      selectedAreaIndex: null,
       segmentStopEndSec: null,
       segmentStopLabel: "",
       originalScore: null
@@ -1543,12 +1563,16 @@
 
     function resetSegmentAnalysis() {
       state.segments = [];
+      state.segmentAreas = [];
       state.segmentEdits = [];
       state.selectedSegmentIndex = null;
-      $("segmentSummary").querySelector("p").textContent = "자동 점검을 누르면 구간별로 튀는 부분, 무음, 주의 구간을 표시합니다.";
-      $("selectedSegmentDetail").innerHTML = "<p>자동 점검 후 파형을 누르면 그 구간만 들을 수 있습니다.</p>";
-      $("segmentStrip").innerHTML = '<button disabled>자동 점검 후 전체 구간이 표시됩니다.</button>';
-      $("segmentPlayNote").textContent = "구간 듣기를 누르면 선택한 구간만 확인할 수 있습니다.";
+      state.selectedAreaIndex = null;
+      $("segmentSummary").querySelector("p").textContent = "자동 점검을 누르면 큰 영역별로 다시 들어볼 부분을 표시합니다.";
+      $("selectedSegmentDetail").innerHTML = "<p>자동 점검 후 파형을 누르면 그 영역만 들을 수 있습니다.</p>";
+      $("areaStrip").innerHTML = '<button disabled>자동 점검 후 큰 영역이 표시됩니다.</button>';
+      $("segmentStrip").innerHTML = '<button disabled>큰 영역을 선택하면 세부 구간이 표시됩니다.</button>';
+      $("detailSegmentsBox").open = false;
+      $("segmentPlayNote").textContent = "영역 듣기를 누르면 선택한 영역만 확인할 수 있습니다.";
       drawRiskTimeline($("riskTimeline"), []);
       updateQuickWorkflow();
     }
@@ -1593,17 +1617,120 @@
       return notes.join(" ");
     }
 
+    function rankRisk(segment) {
+      if (!segment) return 0;
+      if (segment.risk === "위험") return 5;
+      if (tailHarshRank(segment.tailHarshLabel) >= tailHarshRank("세부 확인")) return 4;
+      if (segment.phaseLabel === "위험") return 4;
+      if (segment.risk === "주의" || segment.phaseLabel === "확인") return 3;
+      if (segment.risk === "무음") return 2;
+      return 1;
+    }
+
+    function worstBy(items, ranker) {
+      return items.reduce((best, item) => ranker(item) > ranker(best) ? item : best, items[0]);
+    }
+
+    function areaCountForDuration(duration) {
+      if (duration <= 45) return 3;
+      if (duration <= 150) return 4;
+      if (duration <= 360) return 5;
+      return 6;
+    }
+
+    function areaLabel(index, count) {
+      const labels = {
+        3: ["앞부분", "중간", "끝부분"],
+        4: ["앞부분", "중간 앞", "중간 뒤", "끝부분"],
+        5: ["도입", "앞중간", "중간", "뒤중간", "끝부분"],
+        6: ["도입", "앞부분", "중간 앞", "중간 뒤", "뒷부분", "끝부분"]
+      };
+      return labels[count]?.[index] || `${index + 1}번 영역`;
+    }
+
+    function buildSegmentAreas(segments) {
+      if (!segments.length) return [];
+      const duration = segments[segments.length - 1].endSec;
+      const count = Math.min(segments.length, areaCountForDuration(duration));
+      return Array.from({ length: count }, (_, areaIndex) => {
+        const startIndex = Math.floor((segments.length * areaIndex) / count);
+        const endIndex = Math.floor((segments.length * (areaIndex + 1)) / count);
+        const areaSegments = segments.slice(startIndex, Math.max(startIndex + 1, endIndex));
+        const worst = worstBy(areaSegments, rankRisk);
+        const phaseWorst = worstBy(areaSegments, (segment) => segment.phaseLabel === "위험" ? 3 : segment.phaseLabel === "확인" ? 2 : 1);
+        const tailWorst = worstBy(areaSegments, (segment) => tailHarshRank(segment.tailHarshLabel));
+        return {
+          index: areaIndex,
+          label: areaLabel(areaIndex, count),
+          startSec: areaSegments[0].startSec,
+          endSec: areaSegments[areaSegments.length - 1].endSec,
+          segments: areaSegments,
+          risk: worst.risk,
+          phaseLabel: phaseWorst.phaseLabel,
+          tailHarshLabel: tailWorst.tailHarshLabel,
+          tailHarshHits: areaSegments.flatMap((segment) => segment.tailHarshHits || []),
+          priority: rankRisk(worst)
+        };
+      });
+    }
+
+    function areaPlainText(area) {
+      const notes = [];
+      const flagged = area.segments.filter((segment) => rankRisk(segment) >= 3).length;
+      if (flagged) notes.push(`이 영역 안에 다시 들어볼 세부 구간이 ${flagged}개 있습니다.`);
+      else notes.push("이 영역에서는 큰 위험이 많이 보이지 않습니다.");
+      if (area.risk === "위험") notes.push("소리가 갑자기 튀는 부분이 있을 수 있습니다.");
+      else if (area.risk === "주의") notes.push("다른 부분보다 크게 들릴 수 있는 곳이 있습니다.");
+      if (area.phaseLabel === "위험" || area.phaseLabel === "확인") notes.push("작은 스피커에서도 한 번 확인하세요.");
+      if (tailHarshRank(area.tailHarshLabel) >= tailHarshRank("세부 확인")) {
+        const hit = area.tailHarshHits?.[0];
+        notes.push(hit ? `${formatTimePrecise(hit.startSec)} 근처에 짧게 거친 소리가 있을 수 있습니다.` : "큰 음 끝에 거친 소리가 남을 수 있습니다.");
+      }
+      return notes.join(" ");
+    }
+
     function renderSegmentActions(segment, edit) {
       return `
         <div class="mini-actions">
           <button data-segment-play="original" data-start="${segment.startSec}" data-end="${segment.endSec}">원본 듣기</button>
           <button data-segment-play="processed" data-start="${segment.startSec}" data-end="${segment.endSec}" ${state.processedBuffer ? "" : "disabled"}>보정본 듣기</button>
-          <button data-segment-edit="lower" data-index="${segment.index}" class="${edit?.type === "lower" ? "active" : ""}">튀는 곳 낮추기</button>
-          <button data-segment-edit="soften" data-index="${segment.index}" class="${edit?.type === "soften" ? "active" : ""}">거친 느낌 줄이기</button>
-          <button data-segment-edit="tail" data-index="${segment.index}" class="${edit?.type === "tail" ? "active" : ""}">끝 소리 완화</button>
-          <button data-segment-edit="clear" data-index="${segment.index}" ${edit ? "" : "disabled"}>해제</button>
+          <button data-segment-edit="lower" data-index="${segment.index}" class="${edit?.type === "lower" ? "active" : ""}">이 구간 낮추기 예약</button>
+          <button data-segment-edit="soften" data-index="${segment.index}" class="${edit?.type === "soften" ? "active" : ""}">이 구간 부드럽게 예약</button>
+          <button data-segment-edit="tail" data-index="${segment.index}" class="${edit?.type === "tail" ? "active" : ""}">끝 소리 완화 예약</button>
+          <button data-segment-edit="clear" data-index="${segment.index}" ${edit ? "" : "disabled"}>예약 해제</button>
         </div>
       `;
+    }
+
+    function renderAreaActions(area, edit) {
+      return `
+        <div class="mini-actions">
+          <button data-area-play="original" data-area-index="${area.index}">영역 듣기</button>
+          <button data-area-play="processed" data-area-index="${area.index}" ${state.processedBuffer ? "" : "disabled"}>보정본 영역 듣기</button>
+          <button data-area-nav="prev" data-area-index="${area.index}" ${area.index <= 0 ? "disabled" : ""}>이전 영역</button>
+          <button data-area-nav="next" data-area-index="${area.index}" ${area.index >= state.segmentAreas.length - 1 ? "disabled" : ""}>다음 영역</button>
+          <button data-area-edit="lower" data-area-index="${area.index}" class="${edit?.type === "lower" ? "active" : ""}">이 영역 낮추기 예약</button>
+          <button data-area-edit="soften" data-area-index="${area.index}" class="${edit?.type === "soften" ? "active" : ""}">이 영역 부드럽게 예약</button>
+          <button data-area-edit="tail" data-area-index="${area.index}" class="${edit?.type === "tail" ? "active" : ""}">끝 소리 완화 예약</button>
+          <button data-area-edit="clear" data-area-index="${area.index}" ${edit ? "" : "disabled"}>예약 해제</button>
+        </div>
+      `;
+    }
+
+    function renderAreaStrip(areas) {
+      $("areaStrip").innerHTML = areas.map((area) => {
+        const hasEdit = Boolean(getSegmentEdit(`area-${area.index}`));
+        return `
+          <button
+            class="${riskClass(area.risk)} ${state.selectedAreaIndex === area.index ? "selected" : ""} ${hasEdit ? "queued" : ""}"
+            data-area-strip="${area.index}"
+            data-area-index="${area.index}"
+            title="${formatTime(area.startSec)}-${formatTime(area.endSec)} ${area.label}"
+          >
+            ${area.label}
+          </button>
+        `;
+      }).join("");
     }
 
     function renderSegmentStrip(segments) {
@@ -1633,18 +1760,53 @@
       `;
     }
 
-    function markSelectedSegmentCard() {
+    function updateSelectedArea(area) {
+      if (!area) {
+        $("selectedSegmentDetail").innerHTML = "<p>파형에서 확인할 영역을 누르세요.</p>";
+        return;
+      }
+      const edit = getSegmentEdit(`area-${area.index}`);
+      $("selectedSegmentDetail").innerHTML = `
+        <span class="segment-badge ${riskClass(area.risk)}">${riskPlainLabel(area)}</span><br>
+        <strong>${area.label} · ${formatTime(area.startSec)}-${formatTime(area.endSec)}</strong>
+        <p>${areaPlainText(area)}</p>
+        ${edit ? `<small class="segment-edit-note">예약됨: ${edit.label}<br>아직 보정본에는 반영 전입니다. 보정 만들기를 눌러야 실제로 적용됩니다.</small>` : ""}
+        <small class="segment-edit-note">보정을 예약하면 실제 적용은 앞뒤 연결부까지 자연스럽게 이어집니다.</small>
+        ${renderAreaActions(area, edit)}
+      `;
+      renderSegmentStrip(area.segments);
+      $("detailSegmentsBox").querySelector("summary").textContent = `${area.label} 세부 구간 보기`;
+    }
+
+    function markSelectedControls() {
+      document.querySelectorAll("[data-area-strip]").forEach((button) => {
+        button.classList.toggle("selected", Number(button.dataset.areaStrip) === state.selectedAreaIndex);
+        button.classList.toggle("queued", Boolean(getSegmentEdit(`area-${button.dataset.areaIndex}`)));
+      });
       document.querySelectorAll("[data-segment-strip]").forEach((button) => {
         button.classList.toggle("selected", Number(button.dataset.segmentStrip) === state.selectedSegmentIndex);
       });
+    }
+
+    function selectAreaByIndex(index, shouldPlay = false) {
+      const area = state.segmentAreas.find((item) => item.index === index);
+      if (!area) return;
+      state.selectedAreaIndex = area.index;
+      state.selectedSegmentIndex = area.segments[0]?.index ?? null;
+      updateSelectedArea(area);
+      markSelectedControls();
+      drawRiskTimeline($("riskTimeline"), state.segments);
+      if (shouldPlay) playSegment("original", area.startSec, area.endSec);
     }
 
     function selectSegmentByIndex(index, shouldPlay = false) {
       const segment = state.segments.find((item) => item.index === index);
       if (!segment) return;
       state.selectedSegmentIndex = segment.index;
-      updateSelectedSegment(segment);
-      markSelectedSegmentCard();
+      const area = state.segmentAreas.find((item) => item.segments.some((areaSegment) => areaSegment.index === segment.index));
+      if (area) state.selectedAreaIndex = area.index;
+      updateSelectedArea(area);
+      markSelectedControls();
       drawRiskTimeline($("riskTimeline"), state.segments);
       if (shouldPlay) playSegment("original", segment.startSec, segment.endSec);
     }
@@ -1703,7 +1865,11 @@
         ctx.moveTo(x, 0);
         ctx.lineTo(x, canvas.height);
         ctx.stroke();
-        if (state.selectedSegmentIndex === segment.index) {
+        const selectedArea = state.segmentAreas.find((area) => area.index === state.selectedAreaIndex);
+        const isSelected = selectedArea
+          ? selectedArea.segments.some((areaSegment) => areaSegment.index === segment.index)
+          : state.selectedSegmentIndex === segment.index;
+        if (isSelected) {
           ctx.strokeStyle = "#17202a";
           ctx.lineWidth = 3;
           ctx.strokeRect(x + 2, 2, Math.max(4, width - 4), canvas.height - 4);
@@ -1718,11 +1884,15 @@
 
     function updateSegmentAnalysis(segments) {
       state.segments = segments;
+      state.segmentAreas = buildSegmentAreas(segments);
       if (!segments.some((segment) => segment.index === state.selectedSegmentIndex)) {
         state.selectedSegmentIndex = null;
       }
+      if (!state.segmentAreas.some((area) => area.index === state.selectedAreaIndex)) {
+        state.selectedAreaIndex = null;
+      }
       drawRiskTimeline($("riskTimeline"), segments);
-      renderSegmentStrip(segments);
+      renderAreaStrip(state.segmentAreas);
 
       const firstDanger = segments.find((segment) => segment.risk === "위험");
       const firstWarning = segments.find((segment) => segment.risk === "주의");
@@ -1730,15 +1900,21 @@
       const firstTailHarsh = segments.find((segment) => tailHarshRank(segment.tailHarshLabel) >= tailHarshRank("세부 확인"));
       const firstSilence = segments.find((segment) => segment.risk === "무음");
       const target = firstDanger || firstTailHarsh || firstWarning || firstPhaseRisk || firstSilence;
+      const targetArea = target
+        ? state.segmentAreas.find((area) => area.segments.some((segment) => segment.index === target.index))
+        : state.segmentAreas[0];
       if (target) {
         if (state.selectedSegmentIndex === null) state.selectedSegmentIndex = target.index;
+        if (state.selectedAreaIndex === null && targetArea) state.selectedAreaIndex = targetArea.index;
         const detail = target.tailHarshHits?.length ? ` 세부 위치: ${formatTimePrecise(target.tailHarshHits[0].startSec)}.` : "";
-        $("segmentSummary").querySelector("p").textContent = `${formatTime(target.startSec)}-${formatTime(target.endSec)} 구간을 먼저 확인하세요.${detail} 파형에서 색이 있는 부분을 누르면 해당 구간만 재생됩니다.`;
+        $("segmentSummary").querySelector("p").textContent = `${targetArea?.label || "선택 영역"}을 먼저 확인하세요.${detail} 파형이나 큰 영역 버튼을 누르면 해당 영역만 재생됩니다.`;
       } else {
-        $("segmentSummary").querySelector("p").textContent = "구간별로 크게 튀는 부분은 보이지 않습니다. 원본과 보정본을 같은 음량으로 비교하세요.";
+        if (state.selectedAreaIndex === null && targetArea) state.selectedAreaIndex = targetArea.index;
+        $("segmentSummary").querySelector("p").textContent = "크게 튀는 부분은 보이지 않습니다. 큰 영역별로 원본과 보정본을 같은 음량으로 비교하세요.";
       }
-      updateSelectedSegment(segments.find((segment) => segment.index === state.selectedSegmentIndex) || target || segments[0]);
-      markSelectedSegmentCard();
+      const selectedArea = state.segmentAreas.find((area) => area.index === state.selectedAreaIndex) || targetArea;
+      updateSelectedArea(selectedArea);
+      markSelectedControls();
       drawRiskTimeline($("riskTimeline"), segments);
       updateQuickWorkflow();
     }
@@ -1781,9 +1957,9 @@
       } else if (!hasAnalysis) {
         $("quickStatus").textContent = "자동 점검을 누르면 의심 구간을 한 번에 고를 수 있습니다.";
       } else if (priority && !hasEdits) {
-        $("quickStatus").textContent = `${formatTime(priority.startSec)}-${formatTime(priority.endSec)} 구간이 먼저 볼 후보입니다. 의심 구간 자동 선택을 누르세요.`;
+        $("quickStatus").textContent = `${formatTime(priority.startSec)}-${formatTime(priority.endSec)} 안쪽이 먼저 볼 후보입니다. 큰 영역에서 듣고 필요하면 보정 예약을 하세요.`;
       } else if (hasEdits && !hasProcessed) {
-        $("quickStatus").textContent = `구간 보정 ${hasEdits}개가 선택됐습니다. 이 화면에서 바로 보정 만들기를 누르세요.`;
+        $("quickStatus").textContent = `보정 예약 ${hasEdits}개가 있습니다. 실제 반영하려면 보정 만들기를 누르세요.`;
       } else if (hasProcessed) {
         $("quickStatus").textContent = "보정본이 준비됐습니다. 비교해서 괜찮으면 바로 저장할 수 있습니다.";
       } else {
@@ -1832,15 +2008,40 @@
           type,
           startSec: isTail ? tailStart : segment.startSec,
           endSec: isTail ? tailEnd : segment.endSec,
-          label: type === "lower" ? "튀는 구간 응급처치" : type === "tail" ? "고역 꼬리 완화" : "귀 아픈 구간 완화",
+          label: type === "lower" ? "세부 구간 낮추기 예약" : type === "tail" ? "끝 소리 완화 예약" : "세부 구간 부드럽게 예약",
           gainDb: type === "lower" ? -1.8 : type === "tail" ? -0.35 : -0.7,
-          softenMix: type === "soften" ? 0.28 : type === "tail" ? 0.42 : 0
+          softenMix: type === "soften" ? 0.28 : type === "tail" ? 0.42 : 0,
+          bridgeSec: 0.22
         });
       }
       updateSegmentAnalysis(state.segments);
       const message = type === "clear"
-        ? `${formatTime(segment.startSec)}-${formatTime(segment.endSec)} 구간 응급처치를 해제했습니다.`
-        : `${type === "tail" ? formatRange(state.segmentEdits.find((edit) => edit.index === index)?.startSec || segment.startSec, state.segmentEdits.find((edit) => edit.index === index)?.endSec || segment.endSec) : `${formatTime(segment.startSec)}-${formatTime(segment.endSec)}`} 구간에 '${type === "lower" ? "튀는 구간 응급처치" : type === "tail" ? "고역 꼬리 완화" : "귀 아픈 구간 완화"}'를 선택했습니다. 앞뒤 연결부까지 부드럽게 적용됩니다.`;
+        ? `${formatTime(segment.startSec)}-${formatTime(segment.endSec)} 세부 구간 예약을 해제했습니다.`
+        : `${type === "tail" ? formatRange(state.segmentEdits.find((edit) => edit.index === index)?.startSec || segment.startSec, state.segmentEdits.find((edit) => edit.index === index)?.endSec || segment.endSec) : `${formatTime(segment.startSec)}-${formatTime(segment.endSec)}`} 세부 구간 보정을 예약했습니다. 실제 반영은 보정 만들기를 누를 때 앞뒤 연결부까지 자연스럽게 적용됩니다.`;
+      clearProcessedAfterEdit(message);
+    }
+
+    function setAreaEdit(areaIndex, type) {
+      const area = state.segmentAreas.find((item) => item.index === areaIndex);
+      if (!area) return;
+      const editIndex = `area-${area.index}`;
+      state.segmentEdits = state.segmentEdits.filter((edit) => edit.index !== editIndex);
+      if (type !== "clear") {
+        state.segmentEdits.push({
+          index: editIndex,
+          type,
+          startSec: area.startSec,
+          endSec: area.endSec,
+          label: type === "lower" ? "이 영역 낮추기 예약" : type === "tail" ? "끝 소리 완화 예약" : "이 영역 부드럽게 예약",
+          gainDb: type === "lower" ? -1.5 : type === "tail" ? -0.35 : -0.6,
+          softenMix: type === "soften" ? 0.24 : type === "tail" ? 0.38 : 0,
+          bridgeSec: 0.45
+        });
+      }
+      updateSegmentAnalysis(state.segments);
+      const message = type === "clear"
+        ? `${area.label} 보정 예약을 해제했습니다.`
+        : `${area.label} 보정을 예약했습니다. 실제 반영은 보정 만들기를 누를 때 앞뒤 연결부까지 자연스럽게 적용됩니다.`;
       clearProcessedAfterEdit(message);
     }
 
@@ -2286,12 +2487,12 @@
 
     function applySegmentEdits(buffer, edits = [], plan = null) {
       if (!edits.length) return buffer;
-      const preferredBridgeSamples = Math.floor(buffer.sampleRate * 0.18);
 
       edits.forEach((edit) => {
         const coreStart = clamp(Math.floor(edit.startSec * buffer.sampleRate), 0, buffer.length - 1);
         const coreEnd = clamp(Math.floor(edit.endSec * buffer.sampleRate), coreStart + 1, buffer.length);
         const coreLength = Math.max(1, coreEnd - coreStart);
+        const preferredBridgeSamples = Math.floor(buffer.sampleRate * (edit.bridgeSec || 0.18));
         const bridgeSamples = Math.max(64, Math.min(preferredBridgeSamples, Math.floor(coreLength * 0.45)));
         const editStart = clamp(coreStart - bridgeSamples, 0, buffer.length - 1);
         const editEnd = clamp(coreEnd + bridgeSamples, editStart + 1, buffer.length);
@@ -2664,7 +2865,7 @@
           $("processNote").textContent = "보정본이 너무 큽니다. 약하게로 다시 시도하세요.";
           $("processNote").className = "status bad";
         } else {
-          const segmentEditText = state.segmentEdits.length ? `, 구간 보정 ${state.segmentEdits.length}개` : "";
+          const segmentEditText = state.segmentEdits.length ? `, 보정 예약 ${state.segmentEdits.length}개 반영` : "";
           $("processNote").textContent = `보정본 완료: ${goalLabel} 목표${segmentEditText}, 최대 소리 ${db(processedAnalysis.peak)}. 원본과 같은 구간으로 비교하세요.`;
           $("processNote").className = "status";
         }
@@ -2715,6 +2916,27 @@
     $("quickSaveBtn").addEventListener("click", () => $("saveBtn").click());
 
     function handleSegmentAction(event) {
+      const areaEditButton = event.target.closest("[data-area-edit]");
+      if (areaEditButton) {
+        setAreaEdit(Number(areaEditButton.dataset.areaIndex), areaEditButton.dataset.areaEdit);
+        event.stopPropagation();
+        return true;
+      }
+      const areaPlayButton = event.target.closest("[data-area-play]");
+      if (areaPlayButton) {
+        const area = state.segmentAreas.find((item) => item.index === Number(areaPlayButton.dataset.areaIndex));
+        if (area) playSegment(areaPlayButton.dataset.areaPlay, area.startSec, area.endSec);
+        event.stopPropagation();
+        return true;
+      }
+      const areaNavButton = event.target.closest("[data-area-nav]");
+      if (areaNavButton) {
+        const currentIndex = Number(areaNavButton.dataset.areaIndex);
+        const nextIndex = areaNavButton.dataset.areaNav === "next" ? currentIndex + 1 : currentIndex - 1;
+        selectAreaByIndex(nextIndex, true);
+        event.stopPropagation();
+        return true;
+      }
       const editButton = event.target.closest("[data-segment-edit]");
       if (editButton) {
         setSegmentEdit(Number(editButton.dataset.index), editButton.dataset.segmentEdit);
@@ -2727,6 +2949,12 @@
       event.stopPropagation();
       return true;
     }
+
+    $("areaStrip").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-area-strip]");
+      if (!button) return;
+      selectAreaByIndex(Number(button.dataset.areaStrip), true);
+    });
 
     $("segmentStrip").addEventListener("click", (event) => {
       const button = event.target.closest("[data-segment-strip]");
