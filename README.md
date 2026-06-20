@@ -43,9 +43,10 @@ No server, Python, Node.js, account, API key, or internet connection is required
 - Marks sections that should be listened to again
 - Marks sections that may lose power on small speakers
 - Lets you apply safe section-only fixes:
-  - lower only this section
-  - soften only this section
-  - reset this section
+  - emergency fix for a loud section
+  - soften a tiring section
+  - reset the section fix
+  - automatic smoothing before and after the section
 - Applies conservative correction presets
 - Offers beginner-friendly goals:
   - Auto

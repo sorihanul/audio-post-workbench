@@ -1026,9 +1026,9 @@
             <div class="mini-actions">
               <button data-segment-play="original" data-start="${segment.startSec}" data-end="${segment.endSec}">원본 듣기</button>
               <button data-segment-play="processed" data-start="${segment.startSec}" data-end="${segment.endSec}" ${state.processedBuffer ? "" : "disabled"}>보정본 듣기</button>
-              <button data-segment-edit="lower" data-index="${segment.index}" class="${edit?.type === "lower" ? "active" : ""}">이 구간만 낮추기</button>
-              <button data-segment-edit="soften" data-index="${segment.index}" class="${edit?.type === "soften" ? "active" : ""}">이 구간만 부드럽게</button>
-              <button data-segment-edit="clear" data-index="${segment.index}" ${edit ? "" : "disabled"}>원래대로</button>
+              <button data-segment-edit="lower" data-index="${segment.index}" class="${edit?.type === "lower" ? "active" : ""}">튀는 구간 응급처치</button>
+              <button data-segment-edit="soften" data-index="${segment.index}" class="${edit?.type === "soften" ? "active" : ""}">귀 아픈 구간 완화</button>
+              <button data-segment-edit="clear" data-index="${segment.index}" ${edit ? "" : "disabled"}>해제</button>
             </div>
           </td>
         </tr>`
@@ -1078,15 +1078,15 @@
           type,
           startSec: segment.startSec,
           endSec: segment.endSec,
-          label: type === "lower" ? "이 구간만 낮추기" : "이 구간만 부드럽게",
-          gainDb: type === "lower" ? -2 : -0.8,
-          softenMix: type === "soften" ? 0.34 : 0
+          label: type === "lower" ? "튀는 구간 응급처치" : "귀 아픈 구간 완화",
+          gainDb: type === "lower" ? -1.8 : -0.7,
+          softenMix: type === "soften" ? 0.28 : 0
         });
       }
       updateSegmentAnalysis(state.segments);
       const message = type === "clear"
-        ? `${formatTime(segment.startSec)}-${formatTime(segment.endSec)} 구간 보정을 원래대로 돌렸습니다.`
-        : `${formatTime(segment.startSec)}-${formatTime(segment.endSec)} 구간에 '${type === "lower" ? "살짝 낮추기" : "부드럽게"}'를 선택했습니다. 추천 보정을 다시 만들면 적용됩니다.`;
+        ? `${formatTime(segment.startSec)}-${formatTime(segment.endSec)} 구간 응급처치를 해제했습니다.`
+        : `${formatTime(segment.startSec)}-${formatTime(segment.endSec)} 구간에 '${type === "lower" ? "튀는 구간 응급처치" : "귀 아픈 구간 완화"}'를 선택했습니다. 앞뒤 연결부까지 부드럽게 적용됩니다.`;
       clearProcessedAfterEdit(message);
     }
 
@@ -1487,29 +1487,41 @@
       return Math.pow(10, value / 20);
     }
 
-    function segmentEnvelope(position, start, end, fadeSamples) {
-      if (fadeSamples <= 0) return 1;
-      const fadeIn = clamp((position - start) / fadeSamples, 0, 1);
-      const fadeOut = clamp((end - position) / fadeSamples, 0, 1);
-      return Math.min(fadeIn, fadeOut, 1);
+    function smoothStep(value) {
+      const t = clamp(value, 0, 1);
+      return t * t * (3 - 2 * t);
+    }
+
+    function segmentEnvelope(position, coreStart, coreEnd, editStart, editEnd, bridgeSamples) {
+      if (position < editStart || position >= editEnd) return 0;
+      if (position >= coreStart && position < coreEnd) return 1;
+      if (position < coreStart) {
+        return smoothStep((position - editStart) / Math.max(1, bridgeSamples));
+      }
+      return smoothStep((editEnd - position) / Math.max(1, bridgeSamples));
     }
 
     function applySegmentEdits(buffer, edits = [], plan = null) {
       if (!edits.length) return buffer;
-      const fadeSamples = Math.max(64, Math.floor(buffer.sampleRate * 0.035));
+      const preferredBridgeSamples = Math.floor(buffer.sampleRate * 0.18);
 
       edits.forEach((edit) => {
-        const start = clamp(Math.floor(edit.startSec * buffer.sampleRate), 0, buffer.length - 1);
-        const end = clamp(Math.floor(edit.endSec * buffer.sampleRate), start + 1, buffer.length);
+        const coreStart = clamp(Math.floor(edit.startSec * buffer.sampleRate), 0, buffer.length - 1);
+        const coreEnd = clamp(Math.floor(edit.endSec * buffer.sampleRate), coreStart + 1, buffer.length);
+        const coreLength = Math.max(1, coreEnd - coreStart);
+        const bridgeSamples = Math.max(64, Math.min(preferredBridgeSamples, Math.floor(coreLength * 0.45)));
+        const editStart = clamp(coreStart - bridgeSamples, 0, buffer.length - 1);
+        const editEnd = clamp(coreEnd + bridgeSamples, editStart + 1, buffer.length);
         const gain = dbToGain(edit.gainDb || 0);
         const mix = edit.type === "soften" ? clamp(edit.softenMix || 0.28, 0, 0.45) : 0;
 
         for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
           const data = buffer.getChannelData(channel);
-          const original = mix > 0 ? data.slice(start, end) : null;
-          for (let i = start; i < end; i++) {
-            const envelope = segmentEnvelope(i, start, end, fadeSamples);
-            const local = i - start;
+          const original = mix > 0 ? data.slice(editStart, editEnd) : null;
+          for (let i = editStart; i < editEnd; i++) {
+            const envelope = segmentEnvelope(i, coreStart, coreEnd, editStart, editEnd, bridgeSamples);
+            if (envelope <= 0) continue;
+            const local = i - editStart;
             let value = data[i];
             if (original) {
               const prev = original[Math.max(0, local - 1)];
@@ -1526,8 +1538,8 @@
         if (plan) {
           const range = `${formatTime(edit.startSec)}-${formatTime(edit.endSec)}`;
           const log = edit.type === "lower"
-            ? `${range} 구간만 약 ${Math.abs(edit.gainDb).toFixed(1)} dB 낮췄습니다.`
-            : `${range} 구간만 튀는 느낌을 부드럽게 줄였습니다.`;
+            ? `${range} 구간과 앞뒤 연결부를 자연스럽게 낮췄습니다.`
+            : `${range} 구간과 앞뒤 연결부의 귀 아픈 느낌을 부드럽게 줄였습니다.`;
           logsPush(plan, log);
         }
       });
