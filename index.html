@@ -707,6 +707,59 @@
     }
     .verdict-card.warn strong { background: var(--warn-soft); color: var(--warn); }
     .verdict-card.bad strong { background: #fee4e2; color: var(--bad); }
+    .quality-board {
+      border: 1px solid #cfe0ff;
+      border-radius: 8px;
+      padding: 14px;
+      margin: 12px 0;
+      background: #f8fbff;
+    }
+    .quality-main {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+    }
+    .quality-main strong {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    .quality-main p { margin: 0; color: #344054; }
+    .quality-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .quality-board.warn .quality-pill { background: var(--warn-soft); color: var(--warn); }
+    .quality-board.bad .quality-pill { background: #fee4e2; color: var(--bad); }
+    .quality-lanes {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 12px;
+      border-top: 1px solid #d7e4f5;
+      padding-top: 12px;
+    }
+    .quality-lane h3 {
+      margin: 0 0 6px;
+      font-size: 14px;
+    }
+    .quality-lane ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+    .quality-lane li {
+      margin: 6px 0;
+      color: #344054;
+    }
     .check-list {
       margin: 8px 0 0;
       padding-left: 20px;
@@ -746,6 +799,8 @@
       section { overflow: hidden; }
       .grid, .two, .score-row { grid-template-columns: 1fr; }
       .explain-grid { grid-template-columns: 1fr; }
+      .quality-main { grid-template-columns: 1fr; }
+      .quality-lanes { grid-template-columns: 1fr; }
       .goal-grid { grid-template-columns: 1fr; }
       .view-tabs {
         display: grid;
@@ -982,6 +1037,35 @@
       <div id="resultVerdict" class="verdict-card">
         <strong id="resultVerdictLabel">대기</strong>
         <span id="resultVerdictText">보정본을 만들면 저장 전에 어떻게 판단할지 보여줍니다.</span>
+      </div>
+      <div id="qualityJudgment" class="quality-board">
+        <div class="quality-main">
+          <span id="qualityVerdictPill" class="quality-pill">대기</span>
+          <div>
+            <strong id="qualityHeadline">아직 판단 전입니다.</strong>
+            <p id="qualitySummary">보정본을 만들면 음질을 초보자 기준으로 풀어서 판단합니다.</p>
+          </div>
+        </div>
+        <div class="quality-lanes">
+          <div class="quality-lane">
+            <h3>좋아진 점</h3>
+            <ul id="qualityGoodList">
+              <li>보정본을 만든 뒤 표시됩니다.</li>
+            </ul>
+          </div>
+          <div class="quality-lane">
+            <h3>주의할 점</h3>
+            <ul id="qualityCautionList">
+              <li>보정본을 만든 뒤 표시됩니다.</li>
+            </ul>
+          </div>
+          <div class="quality-lane">
+            <h3>바로 해볼 것</h3>
+            <ul id="qualityActionList">
+              <li>보정본을 만든 뒤 원본과 같은 구간으로 비교하세요.</li>
+            </ul>
+          </div>
+        </div>
       </div>
       <div class="score-row">
         <div class="score-card"><strong id="processedScore">-</strong><span>보정본 안전 점수</span></div>
@@ -2043,6 +2127,13 @@
       $("resultVerdict").className = "verdict-card";
       $("resultVerdictLabel").textContent = "대기";
       $("resultVerdictText").textContent = "보정본을 만들면 저장 전에 어떻게 판단할지 보여줍니다.";
+      $("qualityJudgment").className = "quality-board";
+      $("qualityVerdictPill").textContent = "대기";
+      $("qualityHeadline").textContent = "아직 판단 전입니다.";
+      $("qualitySummary").textContent = "보정본을 만들면 음질을 초보자 기준으로 풀어서 판단합니다.";
+      $("qualityGoodList").innerHTML = "<li>보정본을 만든 뒤 표시됩니다.</li>";
+      $("qualityCautionList").innerHTML = "<li>보정본을 만든 뒤 표시됩니다.</li>";
+      $("qualityActionList").innerHTML = "<li>보정본을 만든 뒤 원본과 같은 구간으로 비교하세요.</li>";
       $("saveChecklistList").innerHTML = "<li>보정본을 만든 뒤 원본과 같은 구간으로 비교하세요.</li>";
     }
 
@@ -2101,6 +2192,111 @@
       $("resultVerdict").className = `verdict-card ${verdict.level}`.trim();
       $("resultVerdictLabel").textContent = verdict.label;
       $("resultVerdictText").textContent = verdict.text;
+    }
+
+    function firstQualitySegment(segments) {
+      return segments.find((segment) => segment.risk === "위험")
+        || segments.find((segment) => tailHarshRank(segment.tailHarshLabel) >= tailHarshRank("세부 확인"))
+        || segments.find((segment) => segment.risk === "주의")
+        || segments.find((segment) => segment.phaseLabel === "위험" || segment.phaseLabel === "확인")
+        || null;
+    }
+
+    function renderQualityList(id, items) {
+      $(id).innerHTML = items.map((item) => `<li>${item}</li>`).join("");
+    }
+
+    function buildQualityJudgment(before, after, beforeSegments, afterSegments) {
+      const beforeScore = state.originalScore ?? computeSafetyScore(before, beforeSegments || []);
+      const afterScore = computeSafetyScore(after, afterSegments || []);
+      const scoreDelta = afterScore - beforeScore;
+      const rmsDelta = dbNumber(after.rms) - dbNumber(before.rms);
+      const rmsAbsDelta = Math.abs(rmsDelta);
+      const peakDelta = dbNumber(after.peak) - dbNumber(before.peak);
+      const dynamicDelta = after.dynamic - before.dynamic;
+      const mudDelta = after.lowRatio - before.lowRatio;
+      const sharpDelta = after.highRatio - before.highRatio;
+      const afterRisk = getPrimaryRisk(after, afterSegments || []);
+      const priority = firstQualitySegment(afterSegments || []);
+      const good = [];
+      const caution = [];
+      const action = [];
+
+      if (scoreDelta >= 3) good.push(`안전 점수가 ${scoreDelta}점 좋아졌습니다.`);
+      if (peakDelta < -1) good.push("가장 큰 순간의 여유가 늘어서 거칠게 깨질 가능성이 줄었습니다.");
+      if (after.peak <= 0.96) good.push("최대 소리가 끝까지 차 있지 않아 저장 여유가 있습니다.");
+      if (mudDelta < -0.08) good.push("낮은 소리 뭉침이 줄어 중심 소리가 더 또렷할 수 있습니다.");
+      if (sharpDelta < -0.08) good.push("높은 소리의 따가운 느낌이 줄었을 수 있습니다.");
+      if (dynamicDelta > 1) good.push("작은 소리와 큰 소리의 차이가 조금 더 살아났습니다.");
+      if (!good.length) good.push("큰 변화는 작습니다. 원본 느낌을 크게 흔들지 않는 비교본에 가깝습니다.");
+
+      if (labelClip(after) === "높음" || after.peak > 0.99) caution.push("최대 소리가 너무 끝까지 차서 저장 보류가 안전합니다.");
+      if (rmsAbsDelta > 1.5) caution.push("원본과 보정본의 체감 음량 차이가 큽니다. 커져서 좋아 보이는 착시일 수 있습니다.");
+      if (scoreDelta < -4) caution.push("수치상 안전도가 원본보다 떨어졌습니다. 원본 유지도 비교하세요.");
+      if (peakDelta > 1) caution.push("가장 큰 순간이 더 커졌습니다. 큰 부분에서 거칠어졌는지 확인하세요.");
+      if (dynamicDelta < -1) caution.push("보정 후 소리가 더 눌려 답답하게 느껴질 수 있습니다.");
+      if (mudDelta > 0.08) caution.push("낮은 소리가 더 뭉쳐 답답하게 들릴 수 있습니다.");
+      if (sharpDelta > 0.08) caution.push("높은 소리가 더 도드라져 오래 들으면 피곤할 수 있습니다.");
+      if (tailHarshRank(labelTailHarsh(after)) >= tailHarshRank("세부 확인")) caution.push("큰 음 끝에 얇고 거친 소리가 남을 수 있습니다.");
+      if (after.phaseLabel === "위험" || after.monoLabel === "위험") caution.push("작은 스피커나 모노 환경에서 힘이 빠질 수 있습니다.");
+      if (priority) caution.push(`${formatTime(priority.startSec)}-${formatTime(priority.endSec)} 구간은 직접 들어봐야 합니다.`);
+      if (!caution.length) caution.push("뚜렷한 악화 신호는 낮습니다. 그래도 저장 전 같은 위치로 한 번 더 비교하세요.");
+
+      if (priority) action.push(`${formatTime(priority.startSec)}-${formatTime(priority.endSec)} 구간을 원본과 보정본으로 번갈아 들어보세요.`);
+      if (rmsAbsDelta > 1.2) action.push("비교 탭에서 비교 음량 맞춤을 켠 상태로 다시 들어보세요.");
+      action.push("비교 탭의 짧은 A/B 반복으로 같은 구간을 반복해서 확인하세요.");
+      if (afterRisk !== "낮음" && afterRisk !== "-") action.push(`남은 핵심 확인점은 ${plainPrimaryRisk(afterRisk)}입니다.`);
+
+      let level = "";
+      let label = "비교 후 결정";
+      let headline = "귀로 한 번 더 확인해야 합니다.";
+      let summary = "보정본이 만들어졌습니다. 더 커졌는지가 아니라 덜 거칠고 덜 피곤한지를 기준으로 판단하세요.";
+
+      if (labelClip(after) === "높음" || after.peak > 0.99) {
+        level = "bad";
+        label = "저장 보류";
+        headline = "소리가 깨질 수 있습니다.";
+        summary = "최대 소리가 너무 끝까지 찼습니다. 저장보다 약하게 다시 만들거나 원본을 유지하는 편이 안전합니다.";
+      } else if (rmsAbsDelta > 1.5) {
+        level = "warn";
+        label = "음량 확인";
+        headline = "먼저 크기 차이를 맞춰 들어야 합니다.";
+        summary = "보정본이 좋아진 것이 아니라 더 크게 들려 좋아 보일 수 있습니다. 비교 음량 맞춤을 켜고 같은 구간을 들어보세요.";
+      } else if (scoreDelta < -4 || peakDelta > 1 || dynamicDelta < -1.5) {
+        level = "warn";
+        label = "원본도 후보";
+        headline = "보정본이 더 안전하다고 보기 어렵습니다.";
+        summary = "수치상 원본보다 불리한 신호가 있습니다. 원본과 보정본을 같은 구간에서 비교하고, 불편하면 원본을 유지하세요.";
+      } else if (scoreDelta >= 3 && after.peak <= 0.96 && rmsAbsDelta <= 1.2 && afterRisk === "낮음") {
+        label = "저장 후보";
+        headline = "저장 후보로 볼 수 있습니다.";
+        summary = "안전도는 좋아졌고 큰 남은 위험은 낮습니다. 저장 전 가장 큰 구간만 한 번 더 들어보세요.";
+      } else if (scoreDelta >= 3) {
+        label = "개선 후보";
+        headline = "좋아진 점은 있지만 확인 구간이 남아 있습니다.";
+        summary = `안전도는 좋아졌지만 ${plainPrimaryRisk(afterRisk)} 확인이 남아 있습니다. 표시된 구간을 먼저 들어보세요.`;
+      }
+
+      if (label === "저장 후보") {
+        action.push("가장 큰 구간에서도 불편하지 않으면 저장해도 됩니다.");
+      } else if (label === "저장 보류") {
+        action.push("저장하지 말고 약하게 다시 만들거나 원본을 유지하세요.");
+      } else {
+        action.push("불편한 부분이 들리면 저장하지 말고 약하게 다시 만드세요.");
+      }
+
+      return { level, label, headline, summary, good, caution, action };
+    }
+
+    function updateQualityJudgment(before, after, beforeSegments, afterSegments) {
+      const judgment = buildQualityJudgment(before, after, beforeSegments, afterSegments);
+      $("qualityJudgment").className = `quality-board ${judgment.level}`.trim();
+      $("qualityVerdictPill").textContent = judgment.label;
+      $("qualityHeadline").textContent = judgment.headline;
+      $("qualitySummary").textContent = judgment.summary;
+      renderQualityList("qualityGoodList", judgment.good);
+      renderQualityList("qualityCautionList", judgment.caution);
+      renderQualityList("qualityActionList", judgment.action);
     }
 
     function buildSaveChecklist(before, after, afterSegments) {
@@ -4147,6 +4343,7 @@
         updateComparison(state.analysis, processedAnalysis);
         const processedSegments = analyzeSegments(state.processedBuffer);
         updateResultVerdict(state.analysis, processedAnalysis, state.segments, processedSegments);
+        updateQualityJudgment(state.analysis, processedAnalysis, state.segments, processedSegments);
         updateSaveChecklist(state.analysis, processedAnalysis, processedSegments);
         updateProcessedSoundExplanation(processedAnalysis, processedSegments);
         updateChangeSoundExplanation(state.analysis, processedAnalysis);
