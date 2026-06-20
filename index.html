@@ -800,7 +800,7 @@
     }
     .final-check-current {
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-columns: auto minmax(0, 1fr) auto;
       gap: 10px;
       align-items: center;
       margin-top: 10px;
@@ -815,6 +815,30 @@
       background: var(--accent-soft);
       color: var(--accent);
       font-weight: 900;
+    }
+    .final-check-now {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 6px 10px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .final-check-now.original {
+      border-color: #b9ddcf;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .final-check-now.processed {
+      border-color: #cfe0ff;
+      background: #eef5ff;
+      color: #2d6cdf;
     }
     .final-check-actions {
       display: flex;
@@ -886,6 +910,7 @@
       .final-check-head { display: block; }
       .final-check-head .actions { margin-top: 10px; }
       .final-check-current { grid-template-columns: 1fr; }
+      .final-check-now { width: 100%; white-space: normal; }
       .goal-grid { grid-template-columns: 1fr; }
       .view-tabs {
         display: grid;
@@ -1172,6 +1197,7 @@
             <strong id="finalCheckTitle">아직 점검 전입니다.</strong>
             <p id="finalCheckReason">보정본을 만든 뒤 앱이 먼저 들어볼 구간을 고릅니다.</p>
           </div>
+          <span id="finalCheckNow" class="final-check-now" aria-live="polite">지금 들리는 소리: 대기</span>
         </div>
         <div class="final-check-actions">
           <button data-final-check-result="ok" disabled>괜찮음</button>
@@ -1745,6 +1771,9 @@
       const active = state.activePlayback.kind ? playbackLabel(state.activePlayback.kind) : "대기";
       status.textContent = `지금 듣는 소리: ${active} · ${abVolumeMatchText()} · ${abRepeatText()}`;
       markAbRepeatControls();
+      if (state.finalCheckStatus === "running") {
+        updateFinalCheckPlaybackDisplay(state.activePlayback.kind);
+      }
     }
 
     function setAudioCurrentTime(audio, time, kind) {
@@ -2437,6 +2466,7 @@
         button.disabled = true;
       });
       $("finalCheckList").innerHTML = "<li>아직 점검할 구간이 없습니다.</li>";
+      updateFinalCheckPlaybackDisplay();
     }
 
     function finalCheckScore(segment) {
@@ -2493,6 +2523,23 @@
       return "미확인";
     }
 
+    function updateFinalCheckPlaybackDisplay(kind = null, idleText = "지금 들리는 소리: 대기") {
+      const badge = $("finalCheckNow");
+      if (!badge) return;
+      badge.classList.remove("original", "processed");
+
+      if (state.finalCheckStatus !== "running" || !kind) {
+        badge.textContent = idleText;
+        return;
+      }
+
+      const label = playbackLabel(kind);
+      const nextKind = hasAbSource("processed") ? (kind === "processed" ? "original" : "processed") : kind;
+      const nextText = nextKind !== kind ? ` · 다음: ${playbackLabel(nextKind)}` : "";
+      badge.textContent = `지금 들리는 소리: ${label}${nextText}`;
+      badge.classList.add(kind);
+    }
+
     function renderFinalCheck() {
       const items = state.finalCheckItems;
       if (!items.length) {
@@ -2530,6 +2577,7 @@
         button.disabled = true;
       });
       renderFinalCheck();
+      updateFinalCheckPlaybackDisplay();
     }
 
     function setFinalCheckResultButtons(enabled) {
@@ -2558,6 +2606,7 @@
       $("finalCheckStatus").querySelector("p").textContent = "원본과 보정본이 같은 구간에서 반복됩니다. 듣고 아래 세 버튼 중 하나만 누르세요.";
       $("abNote").textContent = `저장 전 점검 중입니다. ${formatTime(item.startSec)}-${formatTime(item.endSec)} 구간을 원본과 보정본으로 반복합니다.`;
       renderFinalCheck();
+      updateFinalCheckPlaybackDisplay("original");
       updateAbCompareStatus();
     }
 
@@ -2600,6 +2649,7 @@
         : "최종 점검 통과: 저장 후보입니다.";
       renderFinalCheck();
       $("finalCheckIndex").textContent = risky.length ? "보류" : "완료";
+      updateFinalCheckPlaybackDisplay(null, "지금 들리는 소리: 점검 종료");
       updateAbCompareStatus();
     }
 
@@ -2631,6 +2681,7 @@
       $("finalCheckStatus").querySelector("p").textContent = "최종 점검을 멈췄습니다. 다시 시작하면 첫 구간부터 확인합니다.";
       renderFinalCheck();
       $("finalCheckIndex").textContent = "-";
+      updateFinalCheckPlaybackDisplay(null, "지금 들리는 소리: 멈춤");
       updateAbCompareStatus();
     }
 
@@ -4922,6 +4973,9 @@
         state.segmentPlayEndSec,
         "재생을 멈췄습니다."
       );
+      if (state.finalCheckStatus === "running") {
+        updateFinalCheckPlaybackDisplay(null, "지금 들리는 소리: 멈춤");
+      }
       redrawPlaybackCanvases();
     }
 
@@ -4993,6 +5047,7 @@
         const nextLabel = playbackLabel(nextKind === "processed" ? "original" : "processed");
         $("abNote").textContent = `${state.abRepeatSec}초 구간을 반복 비교 중입니다. 지금은 ${currentLabel}, 다음 반복은 ${nextLabel}입니다.`;
       }
+      updateFinalCheckPlaybackDisplay(nextKind);
       redrawPlaybackCanvases();
       updateAbCompareStatus();
       startPlaybackLoop();
