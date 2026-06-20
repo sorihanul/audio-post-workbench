@@ -238,28 +238,7 @@
     }
     .selected-segment strong { display: block; margin-bottom: 6px; }
     .selected-segment p { margin: 0; color: #245846; }
-    .segment-cards {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-      margin-top: 12px;
-    }
-    .segment-card {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 14px;
-      background: #fbfcfe;
-    }
-    .segment-card.selected {
-      border-color: #1f7a5f;
-      box-shadow: 0 0 0 2px rgba(31, 122, 95, 0.14);
-    }
-    .segment-card h3 {
-      margin: 0 0 6px;
-      font-size: 17px;
-    }
-    .segment-card p { margin: 0; color: var(--muted); }
-    .segment-card .segment-badge {
+    .selected-segment .segment-badge {
       display: inline-flex;
       align-items: center;
       min-height: 26px;
@@ -424,7 +403,6 @@
       section { overflow: hidden; }
       .grid, .two, .score-row { grid-template-columns: 1fr; }
       .explain-grid { grid-template-columns: 1fr; }
-      .segment-cards { grid-template-columns: 1fr; }
       .goal-grid { grid-template-columns: 1fr; }
       .view-tabs {
         display: grid;
@@ -550,13 +528,6 @@
       <h3>전체 구간</h3>
       <div id="segmentStrip" class="segment-strip">
         <button disabled>자동 점검 후 전체 구간이 표시됩니다.</button>
-      </div>
-      <h3>먼저 볼 구간</h3>
-      <div id="segmentCards" class="segment-cards">
-        <article class="segment-card">
-          <h3>아직 구간 확인 전입니다.</h3>
-          <p>파일을 넣고 자동 점검을 누르면 파형 위에 다시 들어볼 구간이 표시됩니다.</p>
-        </article>
       </div>
     </section>
 
@@ -1577,7 +1548,6 @@
       $("segmentSummary").querySelector("p").textContent = "자동 점검을 누르면 구간별로 튀는 부분, 무음, 주의 구간을 표시합니다.";
       $("selectedSegmentDetail").innerHTML = "<p>자동 점검 후 파형을 누르면 그 구간만 들을 수 있습니다.</p>";
       $("segmentStrip").innerHTML = '<button disabled>자동 점검 후 전체 구간이 표시됩니다.</button>';
-      $("segmentCards").innerHTML = '<article class="segment-card"><h3>아직 구간 확인 전입니다.</h3><p>파일을 넣고 자동 점검을 누르면 파형 위에 다시 들어볼 구간이 표시됩니다.</p></article>';
       $("segmentPlayNote").textContent = "구간 듣기를 누르면 선택한 구간만 확인할 수 있습니다.";
       drawRiskTimeline($("riskTimeline"), []);
       updateQuickWorkflow();
@@ -1623,15 +1593,6 @@
       return notes.join(" ");
     }
 
-    function prioritySegments(segments) {
-      const important = segments.filter((segment) => (
-        segment.risk !== "보통"
-        || segment.phaseLabel !== "안전"
-        || tailHarshRank(segment.tailHarshLabel) >= tailHarshRank("세부 확인")
-      ));
-      return (important.length ? important : segments.slice(0, 4)).slice(0, 6);
-    }
-
     function renderSegmentActions(segment, edit) {
       return `
         <div class="mini-actions">
@@ -1673,9 +1634,6 @@
     }
 
     function markSelectedSegmentCard() {
-      document.querySelectorAll("[data-segment-card]").forEach((card) => {
-        card.classList.toggle("selected", Number(card.dataset.segmentCard) === state.selectedSegmentIndex);
-      });
       document.querySelectorAll("[data-segment-strip]").forEach((button) => {
         button.classList.toggle("selected", Number(button.dataset.segmentStrip) === state.selectedSegmentIndex);
       });
@@ -1765,19 +1723,6 @@
       }
       drawRiskTimeline($("riskTimeline"), segments);
       renderSegmentStrip(segments);
-      const cards = prioritySegments(segments);
-      $("segmentCards").innerHTML = cards.map((segment) => {
-        const edit = getSegmentEdit(segment.index);
-        return `
-          <article class="segment-card ${state.selectedSegmentIndex === segment.index ? "selected" : ""}" data-segment-card="${segment.index}">
-            <span class="segment-badge ${riskClass(segment.risk)}">${riskPlainLabel(segment)}</span>
-            <h3>${formatTime(segment.startSec)}-${formatTime(segment.endSec)}</h3>
-            <p>${segmentPlainText(segment)}</p>
-            ${edit ? `<small class="segment-edit-note">선택됨: ${edit.label}</small>` : ""}
-            ${renderSegmentActions(segment, edit)}
-          </article>
-        `;
-      }).join("");
 
       const firstDanger = segments.find((segment) => segment.risk === "위험");
       const firstWarning = segments.find((segment) => segment.risk === "주의");
@@ -2782,13 +2727,6 @@
       event.stopPropagation();
       return true;
     }
-
-    $("segmentCards").addEventListener("click", (event) => {
-      if (handleSegmentAction(event)) return;
-      const card = event.target.closest("[data-segment-card]");
-      if (!card) return;
-      selectSegmentByIndex(Number(card.dataset.segmentCard));
-    });
 
     $("segmentStrip").addEventListener("click", (event) => {
       const button = event.target.closest("[data-segment-strip]");
