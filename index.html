@@ -640,6 +640,7 @@
           <button data-goal="clarity">보컬 또렷<br><small>중심 소리 선명</small></button>
           <button data-goal="cleanLow">먹먹함 정리<br><small>저음 뭉침 완화</small></button>
           <button data-goal="softenHigh">귀 피로 줄이기<br><small>날카로움 완화</small></button>
+          <button data-goal="reduceReverb">번지는 잔향 줄이기<br><small>멀고 퍼진 느낌 완화</small></button>
           <button data-goal="separation">분리감 살리기<br><small>스테레오 폭 안전 보강</small></button>
         </div>
       </div>
@@ -797,6 +798,10 @@
       softenHigh: {
         label: "귀 피로 줄이기",
         help: "날카로운 고역과 치찰음 후보를 더 부드럽게 누릅니다."
+      },
+      reduceReverb: {
+        label: "번지는 잔향 줄이기",
+        help: "리버브를 없애는 기능은 아니고, 멀게 퍼지는 느낌과 끝부분의 번짐을 보수적으로 줄입니다."
       },
       separation: {
         label: "분리감 살리기",
@@ -2576,6 +2581,13 @@
         plan.deharshCut -= 1.15 * weight;
         plan.airGain -= 0.35 * weight;
       }
+      if (resolvedGoal === "reduceReverb") {
+        plan.mudCut -= 0.7 * weight;
+        plan.deharshCut -= 0.55 * weight;
+        plan.airGain -= 0.45 * weight;
+        plan.clarityBoost += sharp === "보통" ? 0.25 * weight : 0.1 * weight;
+        plan.width = 1 - (presetName === "strong" ? 0.12 : presetName === "normal" ? 0.09 : 0.06);
+      }
       if (resolvedGoal === "separation") {
         plan.mudCut -= 0.45 * weight;
         plan.clarityBoost += sharp === "보통" ? 0.8 * weight : 0.35 * weight;
@@ -2588,6 +2600,7 @@
       plan.clarityBoost = clamp(plan.clarityBoost, 0, sharp === "보통" ? 1.4 : 0.65);
       plan.deharshCut = clamp(plan.deharshCut, -3.2, 0);
       plan.airGain = clamp(plan.airGain, -1.2, 0.5);
+      plan.width = clamp(plan.width, 0.86, 1.12);
 
       if (plan.mudCut < -0.2) logsPush(plan, "저음/저중역 뭉침 후보를 줄였습니다.");
       if (plan.clarityBoost > 0.2) logsPush(plan, "보컬과 중심 악기가 덜 묻히도록 선명도를 조금 보강했습니다.");
@@ -2595,6 +2608,8 @@
       if (tailHarsh !== "낮음") logsPush(plan, "큰 음 끝의 치치거림 후보를 줄이도록 고역 꼬리를 보수적으로 눌렀습니다.");
       if (plan.width > 1.01) {
         logsPush(plan, "모노 손실이 낮은 파일이라 스테레오 폭을 아주 조금 넓혔습니다.");
+      } else if (plan.width < 0.99) {
+        logsPush(plan, "멀리 퍼지는 느낌을 줄이기 위해 좌우 폭을 살짝 좁혔습니다.");
       } else if (resolvedGoal === "separation") {
         logsPush(plan, "작은 스피커 위험을 피하려고 스테레오 폭 확대는 적용하지 않았습니다.");
       }
