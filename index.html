@@ -106,6 +106,24 @@
       font-size: 13px;
       line-height: 1.45;
     }
+    .phase-meter {
+      position: relative;
+      height: 10px;
+      margin-top: 12px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #f3b6b5 0%, #f0d28c 38%, #b9ddcf 62%, #b9ddcf 100%);
+      overflow: hidden;
+    }
+    .phase-needle {
+      position: absolute;
+      top: -3px;
+      width: 4px;
+      height: 16px;
+      border-radius: 999px;
+      background: #17202a;
+      transform: translateX(-2px);
+      left: 50%;
+    }
     .diagnosis {
       border: 1px solid #b9ddcf;
       border-radius: 8px;
@@ -304,6 +322,7 @@
         <div id="sharpMetric" class="metric"><strong id="sharpValue">-</strong><span>날카로움</span><small id="sharpHelp">고역이 많으면 귀가 피곤하거나 치찰음이 튈 수 있습니다.</small></div>
         <div id="balanceMetric" class="metric"><strong id="balanceValue">-</strong><span>좌우 밸런스</span><small id="balanceHelp">왼쪽/오른쪽 중 한쪽이 과하게 큰지 봅니다.</small></div>
         <div id="monoMetric" class="metric"><strong id="monoValue">-</strong><span>모노 확인</span><small id="monoHelp">스테레오를 하나로 합쳤을 때 소리가 크게 줄어드는지 봅니다.</small></div>
+        <div id="phaseMetric" class="metric"><strong id="phaseValue">-</strong><span>작은 스피커</span><small id="phaseHelp">좌우가 서로 지워져 작은 스피커에서 힘이 빠질 위험을 봅니다.</small><div class="phase-meter"><i id="phaseNeedle" class="phase-needle"></i></div></div>
         <div id="leadSilenceMetric" class="metric"><strong id="leadSilenceValue">-</strong><span>앞 무음</span><small id="leadSilenceHelp">노래 시작 전에 긴 침묵이 있는지 봅니다.</small></div>
         <div id="tailSilenceMetric" class="metric"><strong id="tailSilenceValue">-</strong><span>끝 무음</span><small id="tailSilenceHelp">노래 끝난 뒤 불필요한 침묵이 긴지 봅니다.</small></div>
       </div>
@@ -337,10 +356,10 @@
       </div>
       <table class="compare-table" aria-label="구간별 위험 분석표">
         <thead>
-          <tr><th>구간</th><th>최대 소리</th><th>평균 소리</th><th>판정</th><th>확인 포인트</th></tr>
+          <tr><th>구간</th><th>최대 소리</th><th>평균 소리</th><th>판정</th><th>작은 스피커</th><th>확인 포인트</th></tr>
         </thead>
         <tbody id="segmentRows">
-          <tr><td colspan="5">아직 구간 분석 전입니다.</td></tr>
+          <tr><td colspan="6">아직 구간 분석 전입니다.</td></tr>
         </tbody>
       </table>
     </section>
@@ -583,6 +602,12 @@
       return "큰 위험은 보이지 않습니다.";
     }
 
+    function describeSegmentPhase(phase) {
+      if (phase.phaseLabel === "위험") return "작은 스피커에서 소리가 빠질 수 있습니다. 모노로 다시 들어보세요.";
+      if (phase.phaseLabel === "확인") return "넓게 들릴 수 있지만 작은 스피커 확인이 필요합니다.";
+      return "작은 스피커 위험은 낮습니다.";
+    }
+
     function analyzeSegments(buffer) {
       const samples = getMixedSamples(buffer);
       const segmentCount = Math.min(8, Math.max(1, Math.ceil(buffer.duration)));
@@ -594,13 +619,16 @@
         const startSec = start / buffer.sampleRate;
         const endSec = end / buffer.sampleRate;
         const risk = classifySegment(metrics);
+        const phase = computeStereoWindow(buffer, start, end);
         segments.push({
           index,
           startSec,
           endSec,
           ...metrics,
+          ...phase,
           risk,
-          note: describeSegment({ risk })
+          note: describeSegment({ risk }),
+          phaseNote: describeSegmentPhase(phase)
         });
       }
       return segments;
@@ -627,6 +655,56 @@
       return Math.sqrt(sum / Math.max(data.length, 1));
     }
 
+    function computeStereoWindow(buffer, start = 0, end = buffer.length) {
+      if (buffer.numberOfChannels < 2) {
+        return {
+          correlation: 1,
+          monoLossDb: 0,
+          phaseLabel: "안전",
+          phaseText: "단일 채널이라 좌우 충돌 위험은 낮습니다."
+        };
+      }
+
+      const leftData = buffer.getChannelData(0);
+      const rightData = buffer.getChannelData(1);
+      const safeStart = Math.max(0, Math.min(start, buffer.length - 1));
+      const safeEnd = Math.max(safeStart + 1, Math.min(end, buffer.length));
+      let leftSum = 0;
+      let rightSum = 0;
+      let monoSum = 0;
+      let crossSum = 0;
+
+      for (let i = safeStart; i < safeEnd; i++) {
+        const left = leftData[i];
+        const right = rightData[i];
+        const mono = (left + right) * 0.5;
+        leftSum += left * left;
+        rightSum += right * right;
+        monoSum += mono * mono;
+        crossSum += left * right;
+      }
+
+      const count = Math.max(1, safeEnd - safeStart);
+      const leftRms = Math.sqrt(leftSum / count);
+      const rightRms = Math.sqrt(rightSum / count);
+      const monoRms = Math.sqrt(monoSum / count);
+      const channelAverage = (leftRms + rightRms) / 2;
+      const correlation = crossSum / Math.sqrt(Math.max(leftSum * rightSum, 0.000000000001));
+      const monoLossDb = dbNumber(monoRms / Math.max(channelAverage, 0.000001));
+      const phaseLabel = monoLossDb < -6 || correlation < -0.15
+        ? "위험"
+        : monoLossDb < -2 || correlation < 0.15
+          ? "확인"
+          : "안전";
+      const phaseText = phaseLabel === "안전"
+        ? "작은 스피커로 들어도 소리가 크게 빠질 가능성은 낮습니다."
+        : phaseLabel === "확인"
+          ? "작은 스피커나 모노 환경에서 힘이 빠질 수 있어 다시 들어보세요."
+          : "좌우가 서로 지워질 수 있습니다. 분리감 보정보다 원본 믹스 확인이 우선입니다.";
+
+      return { correlation: clamp(correlation, -1, 1), monoLossDb, phaseLabel, phaseText };
+    }
+
     function computeStereo(buffer) {
       if (buffer.numberOfChannels < 2) {
         return {
@@ -635,7 +713,10 @@
           balanceText: "단일 채널 파일이라 좌우 치우침은 없습니다.",
           monoLabel: "안전",
           monoLossDb: 0,
-          monoText: "이미 모노에 가까운 파일입니다."
+          monoText: "이미 모노에 가까운 파일입니다.",
+          correlation: 1,
+          phaseLabel: "안전",
+          phaseText: "단일 채널이라 좌우 충돌 위험은 낮습니다."
         };
       }
 
@@ -662,7 +743,8 @@
           ? `모노에서 약 ${Math.abs(monoLossDb).toFixed(1)} dB 줄어듭니다. 작은 스피커에서 힘이 빠질 수 있습니다.`
           : `모노에서 약 ${Math.abs(monoLossDb).toFixed(1)} dB 줄어듭니다. 위상 충돌 가능성이 있습니다.`;
 
-      return { balanceLabel, balanceDeltaDb, balanceText, monoLabel, monoLossDb, monoText };
+      const phase = computeStereoWindow(buffer);
+      return { balanceLabel, balanceDeltaDb, balanceText, monoLabel, monoLossDb, monoText, ...phase };
     }
 
     async function renderBandRms(buffer, filterType, frequency) {
@@ -723,7 +805,7 @@
     }
 
     function resetMetricClasses() {
-      ["peakMetric", "rmsMetric", "clipMetric", "dynamicMetric", "mudMetric", "sharpMetric", "balanceMetric", "monoMetric", "leadSilenceMetric", "tailSilenceMetric"].forEach((id) => {
+      ["peakMetric", "rmsMetric", "clipMetric", "dynamicMetric", "mudMetric", "sharpMetric", "balanceMetric", "monoMetric", "phaseMetric", "leadSilenceMetric", "tailSilenceMetric"].forEach((id) => {
         $(id).className = "metric";
       });
     }
@@ -780,6 +862,8 @@
       if (sharp !== "보통") warnings.push("날카로움이 있어 고역을 더 올리는 보정은 피하세요.");
       if (analysis.balanceLabel === "치우침") warnings.push("좌우 밸런스가 치우쳐 있어 중심이 한쪽으로 밀릴 수 있습니다.");
       if (analysis.monoLabel === "위험") warnings.push("모노에서 소리가 크게 줄어 위상 충돌 가능성이 있습니다.");
+      if (analysis.phaseLabel === "위험") warnings.push("작은 스피커에서 좌우가 서로 지워질 수 있습니다.");
+      else if (analysis.phaseLabel === "확인") warnings.push("스테레오가 넓어 작은 스피커에서 다시 확인이 필요합니다.");
       if (analysis.leadSilenceSec >= 2) warnings.push("노래 앞에 긴 무음이 있어 재생 시작이 늦게 느껴질 수 있습니다.");
       if (analysis.tailSilenceSec >= 2) warnings.push("노래 끝에 긴 무음이 있어 저장본이 불필요하게 길 수 있습니다.");
 
@@ -866,7 +950,7 @@
     function resetSegmentAnalysis() {
       state.segments = [];
       $("segmentSummary").querySelector("p").textContent = "자동 점검을 누르면 구간별로 튀는 부분, 무음, 주의 구간을 표시합니다.";
-      $("segmentRows").innerHTML = '<tr><td colspan="5">아직 구간 분석 전입니다.</td></tr>';
+      $("segmentRows").innerHTML = '<tr><td colspan="6">아직 구간 분석 전입니다.</td></tr>';
       drawRiskTimeline($("riskTimeline"), []);
     }
 
@@ -918,8 +1002,9 @@
           <td>${db(segment.peak)}</td>
           <td>${db(segment.rms)}</td>
           <td>${segment.risk}</td>
+          <td>${segment.phaseLabel}</td>
           <td>
-            ${segment.note}
+            ${segment.note}<br><small>${segment.phaseNote}</small>
             <div class="mini-actions">
               <button data-segment-play="original" data-start="${segment.startSec}" data-end="${segment.endSec}">원본 듣기</button>
               <button data-segment-play="processed" data-start="${segment.startSec}" data-end="${segment.endSec}" ${state.processedBuffer ? "" : "disabled"}>보정본 듣기</button>
@@ -930,10 +1015,11 @@
 
       const firstDanger = segments.find((segment) => segment.risk === "위험");
       const firstWarning = segments.find((segment) => segment.risk === "주의");
+      const firstPhaseRisk = segments.find((segment) => segment.phaseLabel === "위험" || segment.phaseLabel === "확인");
       const firstSilence = segments.find((segment) => segment.risk === "무음");
-      const target = firstDanger || firstWarning || firstSilence;
+      const target = firstDanger || firstWarning || firstPhaseRisk || firstSilence;
       if (target) {
-        $("segmentSummary").querySelector("p").textContent = `${formatTime(target.startSec)}-${formatTime(target.endSec)} 구간을 먼저 확인하세요. 판정: ${target.risk}. ${target.note}`;
+        $("segmentSummary").querySelector("p").textContent = `${formatTime(target.startSec)}-${formatTime(target.endSec)} 구간을 먼저 확인하세요. 판정: ${target.risk}, 작은 스피커: ${target.phaseLabel}. ${target.note}`;
       } else {
         $("segmentSummary").querySelector("p").textContent = "구간별로 크게 튀는 부분은 보이지 않습니다. 원본과 보정본을 같은 음량으로 비교하세요.";
       }
@@ -943,6 +1029,7 @@
       if (!analysis) return "-";
       if (labelClip(analysis) === "높음" || analysis.peak >= 0.985) return "깨짐";
       if (segments.some((segment) => segment.risk === "위험")) return "위험 구간";
+      if (segments.some((segment) => segment.phaseLabel === "위험") || analysis.phaseLabel === "위험") return "작은 스피커";
       if (analysis.monoLabel === "위험") return "모노";
       if (analysis.balanceLabel === "치우침") return "좌우";
       if (labelDynamic(analysis) === "많이 눌림") return "눌림";
@@ -961,6 +1048,8 @@
       const dangerousSegments = segments.filter((segment) => segment.risk === "위험").length;
       const warningSegments = segments.filter((segment) => segment.risk === "주의").length;
       const silenceSegments = segments.filter((segment) => segment.risk === "무음").length;
+      const phaseDangerSegments = segments.filter((segment) => segment.phaseLabel === "위험").length;
+      const phaseCheckSegments = segments.filter((segment) => segment.phaseLabel === "확인").length;
 
       if (clip === "높음") score -= 28;
       else if (clip === "주의" || analysis.peak >= 0.96) score -= 14;
@@ -973,26 +1062,31 @@
       else if (analysis.balanceLabel === "주의") score -= 5;
       if (analysis.monoLabel === "위험") score -= 16;
       else if (analysis.monoLabel === "주의") score -= 8;
+      if (analysis.phaseLabel === "위험") score -= 12;
+      else if (analysis.phaseLabel === "확인") score -= 6;
       if (analysis.leadSilenceSec >= 2) score -= 4;
       if (analysis.tailSilenceSec >= 2) score -= 4;
       score -= Math.min(24, dangerousSegments * 8);
       score -= Math.min(12, warningSegments * 3);
       score -= Math.min(6, silenceSegments * 2);
+      score -= Math.min(16, phaseDangerSegments * 6);
+      score -= Math.min(8, phaseCheckSegments * 2);
       return Math.max(0, Math.min(100, Math.round(score)));
     }
 
     function recommendPreset(analysis, segments = []) {
       const dangerCount = segments.filter((segment) => segment.risk === "위험").length;
+      const phaseDangerCount = segments.filter((segment) => segment.phaseLabel === "위험").length;
       const clip = labelClip(analysis);
       const dynamic = labelDynamic(analysis);
       const mud = labelMud(analysis);
       const sharp = labelSharp(analysis);
 
-      if (analysis.monoLabel === "위험") {
+      if (analysis.monoLabel === "위험" || analysis.phaseLabel === "위험" || phaseDangerCount > 0) {
         return {
           preset: "light",
           label: "약하게",
-          reason: "모노에서 손실이 큰 파일은 후보정으로 해결하기 어렵습니다. 먼저 약하게 비교하고 원본 믹스를 확인하세요."
+          reason: "작은 스피커에서 힘이 빠질 위험이 있어 강한 보정보다 약하게 비교하고 원본 믹스를 확인하세요."
         };
       }
       if (clip !== "낮음" || analysis.peak >= 0.96 || dynamic === "많이 눌림" || dangerCount > 0) {
@@ -1018,6 +1112,7 @@
 
     function recommendGoal(analysis) {
       if (!analysis) return "auto";
+      if (analysis.phaseLabel === "위험" || analysis.monoLabel === "위험") return "softenHigh";
       if (labelClip(analysis) !== "낮음" || analysis.peak >= 0.96 || labelDynamic(analysis) === "많이 눌림") return "softenHigh";
       if (labelMud(analysis) !== "보통") return "cleanLow";
       if (labelSharp(analysis) !== "보통") return "softenHigh";
@@ -1140,6 +1235,7 @@
       $("sharpValue").textContent = sharp;
       $("balanceValue").textContent = analysis.balanceLabel;
       $("monoValue").textContent = analysis.monoLabel;
+      $("phaseValue").textContent = analysis.phaseLabel;
       $("leadSilenceValue").textContent = labelSilence(analysis.leadSilenceSec);
       $("tailSilenceValue").textContent = labelSilence(analysis.tailSilenceSec);
       $("peakHelp").textContent = describePeak(analysis);
@@ -1150,6 +1246,8 @@
       $("sharpHelp").textContent = describeBand(sharp, "sharp");
       $("balanceHelp").textContent = analysis.balanceText;
       $("monoHelp").textContent = analysis.monoText;
+      $("phaseHelp").textContent = `${analysis.phaseText} 좌우 맞물림: ${analysis.correlation.toFixed(2)}, 모노 손실: ${Math.abs(analysis.monoLossDb).toFixed(1)} dB`;
+      $("phaseNeedle").style.left = `${clamp(((analysis.correlation + 1) / 2) * 100, 0, 100)}%`;
       $("leadSilenceHelp").textContent = analysis.leadSilenceSec >= 0.6
         ? `시작 전 약 ${analysis.leadSilenceSec.toFixed(1)}초가 조용합니다. 의도한 여백인지 확인하세요.`
         : "시작 전 무음은 짧은 편입니다.";
@@ -1165,6 +1263,7 @@
       updateMetricTone("sharpMetric", sharp === "높음" ? "risky" : sharp === "주의" ? "warnish" : "");
       updateMetricTone("balanceMetric", analysis.balanceLabel === "치우침" ? "risky" : analysis.balanceLabel === "주의" ? "warnish" : "");
       updateMetricTone("monoMetric", analysis.monoLabel === "위험" ? "risky" : analysis.monoLabel === "주의" ? "warnish" : "");
+      updateMetricTone("phaseMetric", analysis.phaseLabel === "위험" ? "risky" : analysis.phaseLabel === "확인" ? "warnish" : "");
       updateMetricTone("leadSilenceMetric", analysis.leadSilenceSec >= 2 ? "warnish" : "");
       updateMetricTone("tailSilenceMetric", analysis.tailSilenceSec >= 2 ? "warnish" : "");
       $("analysisNote").textContent = `간이 분석 완료: ${state.originalBuffer.duration.toFixed(1)}초, ${state.originalBuffer.numberOfChannels}채널, ${state.originalBuffer.sampleRate} Hz`;
@@ -1280,7 +1379,7 @@
       if (resolvedGoal === "separation") {
         plan.mudCut -= 0.45 * weight;
         plan.clarityBoost += sharp === "보통" ? 0.8 * weight : 0.35 * weight;
-        if (analysis.monoLabel === "안전" && analysis.balanceLabel === "균형") {
+        if (analysis.monoLabel === "안전" && analysis.phaseLabel === "안전" && analysis.balanceLabel === "균형" && analysis.correlation > 0.25) {
           plan.width = 1 + (presetName === "strong" ? 0.08 : presetName === "normal" ? 0.06 : 0.035);
         }
       }
@@ -1296,7 +1395,7 @@
       if (plan.width > 1.01) {
         logsPush(plan, "모노 손실이 낮은 파일이라 스테레오 폭을 아주 조금 넓혔습니다.");
       } else if (resolvedGoal === "separation") {
-        logsPush(plan, "모노/좌우 위험을 피하려고 스테레오 폭 확대는 적용하지 않았습니다.");
+        logsPush(plan, "작은 스피커 위험을 피하려고 스테레오 폭 확대는 적용하지 않았습니다.");
       }
 
       return plan;
@@ -1543,6 +1642,7 @@
       $("sharpValue").textContent = "-";
       $("balanceValue").textContent = "-";
       $("monoValue").textContent = "-";
+      $("phaseValue").textContent = "-";
       $("leadSilenceValue").textContent = "-";
       $("tailSilenceValue").textContent = "-";
       $("peakHelp").textContent = "가장 큰 순간이 얼마나 0 dB에 가까운지 봅니다.";
@@ -1553,6 +1653,8 @@
       $("sharpHelp").textContent = "고역이 많으면 귀가 피곤하거나 치찰음이 튈 수 있습니다.";
       $("balanceHelp").textContent = "왼쪽/오른쪽 중 한쪽이 과하게 큰지 봅니다.";
       $("monoHelp").textContent = "스테레오를 하나로 합쳤을 때 소리가 크게 줄어드는지 봅니다.";
+      $("phaseHelp").textContent = "좌우가 서로 지워져 작은 스피커에서 힘이 빠질 위험을 봅니다.";
+      $("phaseNeedle").style.left = "50%";
       $("leadSilenceHelp").textContent = "노래 시작 전에 긴 침묵이 있는지 봅니다.";
       $("tailSilenceHelp").textContent = "노래 끝난 뒤 불필요한 침묵이 긴지 봅니다.";
       $("diagnosisSummary").querySelector("p").textContent = "자동 점검을 누르면, 지금 소리가 안전한지와 어떤 보정부터 시도할지 보여줍니다.";

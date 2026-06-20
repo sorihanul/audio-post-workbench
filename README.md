@@ -39,7 +39,9 @@ No server, Python, Node.js, account, API key, or internet connection is required
 
 - Loads an audio file locally in the browser
 - Shows basic safety checks such as peak, loudness, clipping risk, muddiness, harshness, stereo balance, mono risk, and silence
+- Checks small-speaker risk from stereo/phase behavior
 - Marks sections that should be listened to again
+- Marks sections that may lose power on small speakers
 - Applies conservative correction presets
 - Offers beginner-friendly goals:
   - Auto
