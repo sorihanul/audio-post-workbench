@@ -760,6 +760,88 @@
       margin: 6px 0;
       color: #344054;
     }
+    .final-check {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      margin: 12px 0;
+      background: #fbfcfe;
+    }
+    .final-check-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .final-check-head strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 16px;
+    }
+    .final-check-head p,
+    .final-check-status p {
+      margin: 0;
+      color: #475467;
+    }
+    .final-check-status {
+      margin-top: 12px;
+      padding: 10px;
+      border: 1px solid #d7e4f5;
+      border-radius: 8px;
+      background: #f8fbff;
+    }
+    .final-check-status.warn {
+      border-color: #f0d28c;
+      background: #fffaf0;
+    }
+    .final-check-status.good {
+      border-color: #b9ddcf;
+      background: var(--accent-soft);
+    }
+    .final-check-current {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+      margin-top: 10px;
+    }
+    .final-check-index {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 54px;
+      min-height: 36px;
+      border-radius: 6px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .final-check-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .final-check-actions button[data-final-check-result="ok"] {
+      border-color: #b9ddcf;
+      color: var(--accent);
+    }
+    .final-check-actions button[data-final-check-result="bad"],
+    .final-check-actions button[data-final-check-result="original"] {
+      border-color: #f0d28c;
+      color: var(--warn);
+    }
+    .final-check-list {
+      margin: 12px 0 0;
+      padding-left: 20px;
+    }
+    .final-check-list li {
+      margin: 6px 0;
+      color: #344054;
+    }
+    .final-check-list li.ok { color: var(--accent); }
+    .final-check-list li.bad,
+    .final-check-list li.original { color: var(--warn); }
     .check-list {
       margin: 8px 0 0;
       padding-left: 20px;
@@ -801,6 +883,9 @@
       .explain-grid { grid-template-columns: 1fr; }
       .quality-main { grid-template-columns: 1fr; }
       .quality-lanes { grid-template-columns: 1fr; }
+      .final-check-head { display: block; }
+      .final-check-head .actions { margin-top: 10px; }
+      .final-check-current { grid-template-columns: 1fr; }
       .goal-grid { grid-template-columns: 1fr; }
       .view-tabs {
         display: grid;
@@ -1067,6 +1152,36 @@
           </div>
         </div>
       </div>
+      <div id="finalCheckBox" class="final-check">
+        <div class="final-check-head">
+          <div>
+            <strong>저장 전 최종 청취 점검</strong>
+            <p>앱이 다시 들어볼 구간을 고르고, 같은 구간을 원본과 보정본으로 반복 비교합니다.</p>
+          </div>
+          <div class="actions">
+            <button id="finalCheckStartBtn" disabled>최종 점검 시작</button>
+            <button id="finalCheckStopBtn" disabled>중지</button>
+          </div>
+        </div>
+        <div id="finalCheckStatus" class="final-check-status">
+          <p>보정본을 만들면 저장 전 점검을 시작할 수 있습니다.</p>
+        </div>
+        <div class="final-check-current">
+          <span id="finalCheckIndex" class="final-check-index">-</span>
+          <div>
+            <strong id="finalCheckTitle">아직 점검 전입니다.</strong>
+            <p id="finalCheckReason">보정본을 만든 뒤 앱이 먼저 들어볼 구간을 고릅니다.</p>
+          </div>
+        </div>
+        <div class="final-check-actions">
+          <button data-final-check-result="ok" disabled>괜찮음</button>
+          <button data-final-check-result="bad" disabled>불편함</button>
+          <button data-final-check-result="original" disabled>원본이 나음</button>
+        </div>
+        <ol id="finalCheckList" class="final-check-list">
+          <li>아직 점검할 구간이 없습니다.</li>
+        </ol>
+      </div>
       <div class="score-row">
         <div class="score-card"><strong id="processedScore">-</strong><span>보정본 안전 점수</span></div>
         <div class="score-card"><strong id="scoreDelta">-</strong><span>안전도 변화</span></div>
@@ -1209,7 +1324,10 @@
       abRepeatSec: 0,
       abRepeatStartSec: null,
       abRepeatEndSec: null,
-      abRepeatSwitchLockUntil: 0
+      abRepeatSwitchLockUntil: 0,
+      finalCheckItems: [],
+      finalCheckIndex: -1,
+      finalCheckStatus: "idle"
     };
 
     const presets = {
@@ -2134,6 +2252,7 @@
       $("qualityGoodList").innerHTML = "<li>보정본을 만든 뒤 표시됩니다.</li>";
       $("qualityCautionList").innerHTML = "<li>보정본을 만든 뒤 표시됩니다.</li>";
       $("qualityActionList").innerHTML = "<li>보정본을 만든 뒤 원본과 같은 구간으로 비교하세요.</li>";
+      resetFinalCheck();
       $("saveChecklistList").innerHTML = "<li>보정본을 만든 뒤 원본과 같은 구간으로 비교하세요.</li>";
     }
 
@@ -2297,6 +2416,222 @@
       renderQualityList("qualityGoodList", judgment.good);
       renderQualityList("qualityCautionList", judgment.caution);
       renderQualityList("qualityActionList", judgment.action);
+    }
+
+    function resetFinalCheck() {
+      state.finalCheckItems = [];
+      state.finalCheckIndex = -1;
+      state.finalCheckStatus = "idle";
+      $("finalCheckStartBtn").disabled = !state.processedBuffer;
+      $("finalCheckStopBtn").disabled = true;
+      $("finalCheckStatus").className = "final-check-status";
+      $("finalCheckStatus").querySelector("p").textContent = state.processedBuffer
+        ? "최종 점검을 시작하면 앱이 먼저 들어볼 구간을 자동으로 골라줍니다."
+        : "보정본을 만들면 저장 전 점검을 시작할 수 있습니다.";
+      $("finalCheckIndex").textContent = "-";
+      $("finalCheckTitle").textContent = "아직 점검 전입니다.";
+      $("finalCheckReason").textContent = state.processedBuffer
+        ? "최종 점검 시작을 누르면 원본과 보정본을 같은 구간에서 반복 비교합니다."
+        : "보정본을 만든 뒤 앱이 먼저 들어볼 구간을 고릅니다.";
+      document.querySelectorAll("[data-final-check-result]").forEach((button) => {
+        button.disabled = true;
+      });
+      $("finalCheckList").innerHTML = "<li>아직 점검할 구간이 없습니다.</li>";
+    }
+
+    function finalCheckScore(segment) {
+      if (!segment) return 0;
+      let score = candidateScore(segment);
+      if (segment.risk === "보통") score += Math.max(0, dbNumber(segment.rms) + 24);
+      if (labelDynamic(segment) === "많이 눌림") score += 8;
+      return score;
+    }
+
+    function finalCheckReason(segment) {
+      if (!segment) return "이 구간을 원본과 보정본으로 비교하세요.";
+      if (segment.risk === "위험") return "갑자기 튀거나 거칠게 깨질 수 있는 구간입니다.";
+      if (tailHarshRank(segment.tailHarshLabel) >= tailHarshRank("세부 확인")) return "큰 음 끝에 얇고 거친 소리가 남을 수 있는 구간입니다.";
+      if (segment.phaseLabel === "위험" || segment.phaseLabel === "확인") return "작은 스피커에서 힘이 빠질 수 있는 구간입니다.";
+      if (segment.risk === "주의") return "크기나 압박감이 조금 높은 구간입니다.";
+      return "대표로 들어볼 구간입니다. 원본 느낌이 죽지 않았는지 확인하세요.";
+    }
+
+    function buildFinalCheckItems(afterSegments = []) {
+      const source = afterSegments.length ? afterSegments : state.segments;
+      if (!source.length) return [];
+      const priority = source
+        .map((segment) => ({ segment, score: finalCheckScore(segment) }))
+        .sort((a, b) => b.score - a.score)
+        .map((item) => item.segment);
+      const selected = [];
+      const addSegment = (segment) => {
+        if (!segment) return;
+        if (selected.some((item) => Math.abs(item.startSec - segment.startSec) < 0.08)) return;
+        selected.push(segment);
+      };
+      priority.forEach(addSegment);
+      if (selected.length < 3) {
+        [...source]
+          .sort((a, b) => dbNumber(b.peak) - dbNumber(a.peak))
+          .forEach(addSegment);
+      }
+      return selected.slice(0, Math.min(5, Math.max(3, selected.length))).map((segment, index) => ({
+        id: `check-${index}-${segment.index}`,
+        index,
+        sourceIndex: segment.index,
+        startSec: segment.startSec,
+        endSec: segment.endSec,
+        reason: finalCheckReason(segment),
+        result: null
+      }));
+    }
+
+    function finalCheckResultText(result) {
+      if (result === "ok") return "괜찮음";
+      if (result === "bad") return "불편함";
+      if (result === "original") return "원본이 나음";
+      return "미확인";
+    }
+
+    function renderFinalCheck() {
+      const items = state.finalCheckItems;
+      if (!items.length) {
+        $("finalCheckList").innerHTML = "<li>아직 점검할 구간이 없습니다.</li>";
+        return;
+      }
+      $("finalCheckList").innerHTML = items.map((item, index) => {
+        const current = index === state.finalCheckIndex ? "현재 · " : "";
+        const result = finalCheckResultText(item.result);
+        const className = item.result ? ` class="${item.result}"` : "";
+        return `<li${className}>${current}${formatTime(item.startSec)}-${formatTime(item.endSec)} · ${item.reason} · ${result}</li>`;
+      }).join("");
+      const active = items[state.finalCheckIndex];
+      if (active) {
+        $("finalCheckIndex").textContent = `${state.finalCheckIndex + 1}/${items.length}`;
+        $("finalCheckTitle").textContent = `${formatTime(active.startSec)}-${formatTime(active.endSec)} 구간 확인`;
+        $("finalCheckReason").textContent = active.reason;
+      }
+    }
+
+    function prepareFinalCheck(afterSegments = []) {
+      state.finalCheckItems = buildFinalCheckItems(afterSegments);
+      state.finalCheckIndex = -1;
+      state.finalCheckStatus = "ready";
+      $("finalCheckStartBtn").disabled = !state.finalCheckItems.length;
+      $("finalCheckStopBtn").disabled = true;
+      $("finalCheckStatus").className = "final-check-status";
+      $("finalCheckStatus").querySelector("p").textContent = state.finalCheckItems.length
+        ? `${state.finalCheckItems.length}개 구간을 저장 전 확인 후보로 골랐습니다. 시작하면 같은 구간을 원본과 보정본으로 번갈아 들려줍니다.`
+        : "자동으로 고를 점검 구간이 없습니다. 비교 탭에서 전체를 한 번 들어보세요.";
+      $("finalCheckIndex").textContent = "-";
+      $("finalCheckTitle").textContent = "점검 준비 완료";
+      $("finalCheckReason").textContent = "최종 점검 시작을 누르면 첫 구간부터 A/B 반복이 켜집니다.";
+      document.querySelectorAll("[data-final-check-result]").forEach((button) => {
+        button.disabled = true;
+      });
+      renderFinalCheck();
+    }
+
+    function setFinalCheckResultButtons(enabled) {
+      document.querySelectorAll("[data-final-check-result]").forEach((button) => {
+        button.disabled = !enabled;
+      });
+    }
+
+    function playFinalCheckItem(index) {
+      const item = state.finalCheckItems[index];
+      if (!item || !state.processedBuffer) return;
+      state.finalCheckIndex = index;
+      state.finalCheckStatus = "running";
+      const length = Math.max(0.5, item.endSec - item.startSec);
+      state.abRepeatSec = length;
+      state.abRepeatStartSec = item.startSec;
+      state.abRepeatEndSec = item.endSec;
+      state.abRepeatSwitchLockUntil = 0;
+      setAbSource("original", item.startSec, true);
+      state.abRepeatStartSec = item.startSec;
+      state.abRepeatEndSec = item.endSec;
+      $("finalCheckStartBtn").disabled = true;
+      $("finalCheckStopBtn").disabled = false;
+      setFinalCheckResultButtons(true);
+      $("finalCheckStatus").className = "final-check-status";
+      $("finalCheckStatus").querySelector("p").textContent = "원본과 보정본이 같은 구간에서 반복됩니다. 듣고 아래 세 버튼 중 하나만 누르세요.";
+      $("abNote").textContent = `저장 전 점검 중입니다. ${formatTime(item.startSec)}-${formatTime(item.endSec)} 구간을 원본과 보정본으로 반복합니다.`;
+      renderFinalCheck();
+      updateAbCompareStatus();
+    }
+
+    function startFinalCheck() {
+      if (!state.processedBuffer) {
+        $("finalCheckStatus").className = "final-check-status warn";
+        $("finalCheckStatus").querySelector("p").textContent = "먼저 보정본을 만들어야 최종 점검을 시작할 수 있습니다.";
+        return;
+      }
+      if (!state.finalCheckItems.length) {
+        prepareFinalCheck(analyzeSegments(state.processedBuffer));
+      }
+      if (!state.finalCheckItems.length) return;
+      playFinalCheckItem(0);
+    }
+
+    function completeFinalCheck() {
+      stopAbPlayback();
+      state.abRepeatSec = 0;
+      state.abRepeatStartSec = null;
+      state.abRepeatEndSec = null;
+      state.abRepeatSwitchLockUntil = 0;
+      markAbRepeatControls();
+      const risky = state.finalCheckItems.filter((item) => item.result === "bad" || item.result === "original");
+      state.finalCheckStatus = risky.length ? "hold" : "passed";
+      state.finalCheckIndex = -1;
+      $("finalCheckStartBtn").disabled = false;
+      $("finalCheckStopBtn").disabled = true;
+      setFinalCheckResultButtons(false);
+      $("finalCheckStatus").className = `final-check-status ${risky.length ? "warn" : "good"}`;
+      $("finalCheckStatus").querySelector("p").textContent = risky.length
+        ? `${risky.length}개 구간에서 불편함 또는 원본 우위가 표시됐습니다. 저장 보류로 보고 약하게 다시 만들거나 원본을 유지하세요.`
+        : "확인한 구간이 모두 괜찮음으로 표시됐습니다. 저장 후보로 볼 수 있습니다.";
+      $("finalCheckTitle").textContent = risky.length ? "저장 보류" : "저장 후보";
+      $("finalCheckReason").textContent = risky.length
+        ? "불편하다고 표시한 구간을 다시 듣고, 저장하지 않는 쪽도 후보로 두세요."
+        : "그래도 저장 전 전체 앞뒤 연결이 자연스러운지 한 번 더 들어보세요.";
+      $("processNote").textContent = risky.length
+        ? "최종 점검에서 저장 보류 신호가 나왔습니다. 약하게 다시 만들거나 원본을 유지하세요."
+        : "최종 점검 통과: 저장 후보입니다.";
+      renderFinalCheck();
+      $("finalCheckIndex").textContent = risky.length ? "보류" : "완료";
+      updateAbCompareStatus();
+    }
+
+    function recordFinalCheckResult(result) {
+      const item = state.finalCheckItems[state.finalCheckIndex];
+      if (!item) return;
+      item.result = result;
+      const nextIndex = state.finalCheckItems.findIndex((candidate, index) => index > state.finalCheckIndex && !candidate.result);
+      if (nextIndex >= 0) {
+        playFinalCheckItem(nextIndex);
+      } else {
+        completeFinalCheck();
+      }
+    }
+
+    function stopFinalCheck() {
+      stopAbPlayback();
+      state.abRepeatSec = 0;
+      state.abRepeatStartSec = null;
+      state.abRepeatEndSec = null;
+      state.abRepeatSwitchLockUntil = 0;
+      markAbRepeatControls();
+      state.finalCheckStatus = "ready";
+      state.finalCheckIndex = -1;
+      $("finalCheckStartBtn").disabled = !state.finalCheckItems.length;
+      $("finalCheckStopBtn").disabled = true;
+      setFinalCheckResultButtons(false);
+      $("finalCheckStatus").className = "final-check-status";
+      $("finalCheckStatus").querySelector("p").textContent = "최종 점검을 멈췄습니다. 다시 시작하면 첫 구간부터 확인합니다.";
+      renderFinalCheck();
+      $("finalCheckIndex").textContent = "-";
+      updateAbCompareStatus();
     }
 
     function buildSaveChecklist(before, after, afterSegments) {
@@ -4344,6 +4679,7 @@
         const processedSegments = analyzeSegments(state.processedBuffer);
         updateResultVerdict(state.analysis, processedAnalysis, state.segments, processedSegments);
         updateQualityJudgment(state.analysis, processedAnalysis, state.segments, processedSegments);
+        prepareFinalCheck(processedSegments);
         updateSaveChecklist(state.analysis, processedAnalysis, processedSegments);
         updateProcessedSoundExplanation(processedAnalysis, processedSegments);
         updateChangeSoundExplanation(state.analysis, processedAnalysis);
@@ -4387,6 +4723,12 @@
       $("saveChecklistList").insertAdjacentHTML("beforeend", '<li data-save-request-note>저장을 요청했습니다. 저장본을 한 번 재생해서 파일이 정상인지 확인하세요.</li>');
       updateQuickWorkflow(`저장을 요청했습니다: ${state.processedFileName}`);
       window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+    });
+
+    $("finalCheckStartBtn").addEventListener("click", startFinalCheck);
+    $("finalCheckStopBtn").addEventListener("click", stopFinalCheck);
+    document.querySelectorAll("[data-final-check-result]").forEach((button) => {
+      button.addEventListener("click", () => recordFinalCheckResult(button.dataset.finalCheckResult));
     });
 
     function playPriorityCandidate() {
