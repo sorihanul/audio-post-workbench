@@ -68,8 +68,12 @@
     .compare-table tr:last-child td { border-bottom: 0; }
     .timeline {
       width: 100%;
-      height: 90px;
+      height: 180px;
       margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+      cursor: pointer;
     }
     .legend {
       display: flex;
@@ -225,6 +229,50 @@
       color: #245846;
       font-weight: 700;
     }
+    .selected-segment {
+      border: 1px solid #b9ddcf;
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 12px;
+      background: var(--accent-soft);
+    }
+    .selected-segment strong { display: block; margin-bottom: 6px; }
+    .selected-segment p { margin: 0; color: #245846; }
+    .segment-cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .segment-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fbfcfe;
+    }
+    .segment-card.selected {
+      border-color: #1f7a5f;
+      box-shadow: 0 0 0 2px rgba(31, 122, 95, 0.14);
+    }
+    .segment-card h3 {
+      margin: 0 0 6px;
+      font-size: 17px;
+    }
+    .segment-card p { margin: 0; color: var(--muted); }
+    .segment-card .segment-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 2px 9px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .segment-badge.normal { background: #e7f3ee; color: #245846; }
+    .segment-badge.warning { background: #fff3cf; color: #7a5200; }
+    .segment-badge.danger { background: #ffe4e2; color: #8f1f1f; }
+    .segment-badge.silence { background: #e3edff; color: #2d4f8f; }
     .workflow-panel {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -356,6 +404,7 @@
       section { overflow: hidden; }
       .grid, .two, .score-row { grid-template-columns: 1fr; }
       .explain-grid { grid-template-columns: 1fr; }
+      .segment-cards { grid-template-columns: 1fr; }
       .goal-grid { grid-template-columns: 1fr; }
       .view-tabs {
         display: grid;
@@ -463,7 +512,7 @@
 
     <section data-view="sections">
       <h2>구간 확인</h2>
-      <canvas id="riskTimeline" class="timeline" width="900" height="90"></canvas>
+      <canvas id="riskTimeline" class="timeline" width="900" height="180"></canvas>
       <div class="legend">
         <span><i style="background:#b9ddcf"></i>보통</span>
         <span><i style="background:#f0d28c"></i>주의</span>
@@ -474,14 +523,16 @@
         <label class="option"><input id="segmentAutoStopToggle" type="checkbox" checked> 구간 끝나면 자동 멈춤</label>
       </div>
       <p id="segmentPlayNote" class="status">구간 듣기를 누르면 선택한 구간만 확인할 수 있습니다.</p>
-      <table class="compare-table" aria-label="구간별 위험 분석표">
-        <thead>
-          <tr><th>구간</th><th>최대 소리</th><th>평균 소리</th><th>판정</th><th>작은 스피커</th><th>고역 꼬리</th><th>확인 포인트</th></tr>
-        </thead>
-        <tbody id="segmentRows">
-          <tr><td colspan="7">아직 구간 분석 전입니다.</td></tr>
-        </tbody>
-      </table>
+      <div id="selectedSegmentBox" class="selected-segment">
+        <strong>선택한 구간</strong>
+        <div id="selectedSegmentDetail"><p>자동 점검 후 파형을 누르면 그 구간만 들을 수 있습니다.</p></div>
+      </div>
+      <div id="segmentCards" class="segment-cards">
+        <article class="segment-card">
+          <h3>아직 구간 확인 전입니다.</h3>
+          <p>파일을 넣고 자동 점검을 누르면 파형 위에 다시 들어볼 구간이 표시됩니다.</p>
+        </article>
+      </div>
     </section>
 
     <section data-view="settings">
@@ -626,6 +677,7 @@
       analysis: null,
       segments: [],
       segmentEdits: [],
+      selectedSegmentIndex: null,
       segmentStopEndSec: null,
       segmentStopLabel: "",
       originalScore: null
@@ -1496,8 +1548,10 @@
     function resetSegmentAnalysis() {
       state.segments = [];
       state.segmentEdits = [];
+      state.selectedSegmentIndex = null;
       $("segmentSummary").querySelector("p").textContent = "자동 점검을 누르면 구간별로 튀는 부분, 무음, 주의 구간을 표시합니다.";
-      $("segmentRows").innerHTML = '<tr><td colspan="7">아직 구간 분석 전입니다.</td></tr>';
+      $("selectedSegmentDetail").innerHTML = "<p>자동 점검 후 파형을 누르면 그 구간만 들을 수 있습니다.</p>";
+      $("segmentCards").innerHTML = '<article class="segment-card"><h3>아직 구간 확인 전입니다.</h3><p>파일을 넣고 자동 점검을 누르면 파형 위에 다시 들어볼 구간이 표시됩니다.</p></article>';
       $("segmentPlayNote").textContent = "구간 듣기를 누르면 선택한 구간만 확인할 수 있습니다.";
       drawRiskTimeline($("riskTimeline"), []);
       updateQuickWorkflow();
@@ -1508,6 +1562,92 @@
       if (risk === "주의") return "#f0d28c";
       if (risk === "무음") return "#cfe0ff";
       return "#b9ddcf";
+    }
+
+    function riskClass(risk) {
+      if (risk === "위험") return "danger";
+      if (risk === "주의") return "warning";
+      if (risk === "무음") return "silence";
+      return "normal";
+    }
+
+    function riskPlainLabel(segment) {
+      if (segment.risk === "위험") return "크게 튀는 소리";
+      if (segment.risk === "주의") return "조심해서 들을 곳";
+      if (segment.risk === "무음") return "조용한 구간";
+      if (segment.phaseLabel === "위험" || segment.phaseLabel === "확인") return "작은 스피커 확인";
+      if (tailHarshRank(segment.tailHarshLabel) >= tailHarshRank("세부 확인")) return "끝에 거친 소리";
+      return "보통";
+    }
+
+    function segmentPlainText(segment) {
+      const notes = [];
+      if (segment.risk === "위험") notes.push("이 구간은 소리가 갑자기 커질 수 있습니다.");
+      else if (segment.risk === "주의") notes.push("이 구간은 다른 부분보다 크게 들릴 수 있습니다.");
+      else if (segment.risk === "무음") notes.push("이 구간은 거의 조용합니다. 의도한 여백인지 확인하세요.");
+      else notes.push("큰 위험은 보이지 않습니다.");
+
+      if (segment.phaseLabel === "위험") notes.push("작은 스피커에서 힘이 빠질 수 있습니다.");
+      else if (segment.phaseLabel === "확인") notes.push("휴대폰이나 작은 스피커로도 확인하는 편이 좋습니다.");
+
+      if (tailHarshRank(segment.tailHarshLabel) >= tailHarshRank("세부 확인")) {
+        const hit = segment.tailHarshHits?.[0];
+        notes.push(hit ? `${formatTimePrecise(hit.startSec)} 근처에 짧게 거친 소리가 있을 수 있습니다.` : "큰 음 끝에 거친 소리가 남을 수 있습니다.");
+      }
+      return notes.join(" ");
+    }
+
+    function prioritySegments(segments) {
+      const important = segments.filter((segment) => (
+        segment.risk !== "보통"
+        || segment.phaseLabel !== "안전"
+        || tailHarshRank(segment.tailHarshLabel) >= tailHarshRank("세부 확인")
+      ));
+      return (important.length ? important : segments.slice(0, 4)).slice(0, 6);
+    }
+
+    function renderSegmentActions(segment, edit) {
+      return `
+        <div class="mini-actions">
+          <button data-segment-play="original" data-start="${segment.startSec}" data-end="${segment.endSec}">원본 듣기</button>
+          <button data-segment-play="processed" data-start="${segment.startSec}" data-end="${segment.endSec}" ${state.processedBuffer ? "" : "disabled"}>보정본 듣기</button>
+          <button data-segment-edit="lower" data-index="${segment.index}" class="${edit?.type === "lower" ? "active" : ""}">튀는 곳 낮추기</button>
+          <button data-segment-edit="soften" data-index="${segment.index}" class="${edit?.type === "soften" ? "active" : ""}">거친 느낌 줄이기</button>
+          <button data-segment-edit="tail" data-index="${segment.index}" class="${edit?.type === "tail" ? "active" : ""}">끝 소리 완화</button>
+          <button data-segment-edit="clear" data-index="${segment.index}" ${edit ? "" : "disabled"}>해제</button>
+        </div>
+      `;
+    }
+
+    function updateSelectedSegment(segment) {
+      if (!segment) {
+        $("selectedSegmentDetail").innerHTML = "<p>파형에서 확인할 구간을 누르세요.</p>";
+        return;
+      }
+      const edit = getSegmentEdit(segment.index);
+      $("selectedSegmentDetail").innerHTML = `
+        <span class="segment-badge ${riskClass(segment.risk)}">${riskPlainLabel(segment)}</span><br>
+        <strong>${formatTime(segment.startSec)}-${formatTime(segment.endSec)}</strong>
+        <p>${segmentPlainText(segment)}</p>
+        ${edit ? `<small class="segment-edit-note">선택됨: ${edit.label}</small>` : ""}
+        ${renderSegmentActions(segment, edit)}
+      `;
+    }
+
+    function markSelectedSegmentCard() {
+      document.querySelectorAll("[data-segment-card]").forEach((card) => {
+        card.classList.toggle("selected", Number(card.dataset.segmentCard) === state.selectedSegmentIndex);
+      });
+    }
+
+    function selectSegmentByIndex(index, shouldPlay = false) {
+      const segment = state.segments.find((item) => item.index === index);
+      if (!segment) return;
+      state.selectedSegmentIndex = segment.index;
+      updateSelectedSegment(segment);
+      markSelectedSegmentCard();
+      drawRiskTimeline($("riskTimeline"), state.segments);
+      if (shouldPlay) playSegment("original", segment.startSec, segment.endSec);
     }
 
     function drawRiskTimeline(canvas, segments) {
@@ -1521,20 +1661,55 @@
       if (!segments.length) {
         ctx.fillStyle = "#667085";
         ctx.font = "14px Segoe UI, Arial";
-        ctx.fillText("자동 점검 후 구간별 위험이 표시됩니다.", 18, 48);
+        ctx.fillText("자동 점검 후 파형 위에 다시 들어볼 구간이 표시됩니다.", 18, 92);
         return;
       }
 
       const width = canvas.width / segments.length;
       segments.forEach((segment, index) => {
         const x = index * width;
+        ctx.globalAlpha = segment.risk === "보통" ? 0.18 : 0.38;
         ctx.fillStyle = riskColor(segment.risk);
         ctx.fillRect(x, 0, width, canvas.height);
+        ctx.globalAlpha = 1;
+      });
+
+      const samples = state.originalBuffer ? getMixedSamples(state.originalBuffer) : null;
+      if (samples?.length) {
+        const center = canvas.height / 2;
+        const amp = canvas.height * 0.35;
+        const step = Math.max(1, Math.floor(samples.length / canvas.width));
+        ctx.strokeStyle = "#1f7a5f";
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        for (let x = 0; x < canvas.width; x++) {
+          let min = 1;
+          let max = -1;
+          const start = x * step;
+          for (let i = 0; i < step && start + i < samples.length; i++) {
+            const value = samples[start + i];
+            if (value < min) min = value;
+            if (value > max) max = value;
+          }
+          ctx.moveTo(x, center - max * amp);
+          ctx.lineTo(x, center - min * amp);
+        }
+        ctx.stroke();
+      }
+
+      segments.forEach((segment, index) => {
+        const x = index * width;
         ctx.strokeStyle = "#ffffff";
         ctx.beginPath();
         ctx.moveTo(x, 0);
         ctx.lineTo(x, canvas.height);
         ctx.stroke();
+        if (state.selectedSegmentIndex === segment.index) {
+          ctx.strokeStyle = "#17202a";
+          ctx.lineWidth = 3;
+          ctx.strokeRect(x + 2, 2, Math.max(4, width - 4), canvas.height - 4);
+          ctx.lineWidth = 1;
+        }
         ctx.fillStyle = "#17202a";
         ctx.font = "12px Segoe UI, Arial";
         ctx.fillText(`${index + 1}`, x + 8, 22);
@@ -1544,39 +1719,23 @@
 
     function updateSegmentAnalysis(segments) {
       state.segments = segments;
+      if (!segments.some((segment) => segment.index === state.selectedSegmentIndex)) {
+        state.selectedSegmentIndex = null;
+      }
       drawRiskTimeline($("riskTimeline"), segments);
-      $("segmentRows").innerHTML = segments.map((segment) => (
-        (() => {
-          const edit = getSegmentEdit(segment.index);
-          const editText = edit ? `<small class="segment-edit-note">선택됨: ${edit.label}</small>` : "";
-          const tailHits = segment.tailHarshHits || [];
-          const hitText = tailHits.length
-            ? `<br><small>세부 위치: ${tailHits.map((hit) => `${formatTimePrecise(hit.startSec)} ${hit.label}`).join(", ")}</small>`
-            : "";
-          return (
-        `<tr>
-          <td>${formatTime(segment.startSec)}-${formatTime(segment.endSec)}</td>
-          <td>${db(segment.peak)}</td>
-          <td>${db(segment.rms)}</td>
-          <td>${segment.risk}</td>
-          <td>${segment.phaseLabel}</td>
-          <td>${segment.tailHarshLabel}</td>
-          <td>
-            ${segment.note}<br><small>${segment.phaseNote}</small><br><small>${segment.tailHarshNote}</small>${hitText}
-            ${editText}
-            <div class="mini-actions">
-              <button data-segment-play="original" data-start="${segment.startSec}" data-end="${segment.endSec}">원본 듣기</button>
-              <button data-segment-play="processed" data-start="${segment.startSec}" data-end="${segment.endSec}" ${state.processedBuffer ? "" : "disabled"}>보정본 듣기</button>
-              <button data-segment-edit="lower" data-index="${segment.index}" class="${edit?.type === "lower" ? "active" : ""}">튀는 구간 응급처치</button>
-              <button data-segment-edit="soften" data-index="${segment.index}" class="${edit?.type === "soften" ? "active" : ""}">귀 아픈 구간 완화</button>
-              <button data-segment-edit="tail" data-index="${segment.index}" class="${edit?.type === "tail" ? "active" : ""}">고역 꼬리 완화</button>
-              <button data-segment-edit="clear" data-index="${segment.index}" ${edit ? "" : "disabled"}>해제</button>
-            </div>
-          </td>
-        </tr>`
-          );
-        })()
-      )).join("");
+      const cards = prioritySegments(segments);
+      $("segmentCards").innerHTML = cards.map((segment) => {
+        const edit = getSegmentEdit(segment.index);
+        return `
+          <article class="segment-card ${state.selectedSegmentIndex === segment.index ? "selected" : ""}" data-segment-card="${segment.index}">
+            <span class="segment-badge ${riskClass(segment.risk)}">${riskPlainLabel(segment)}</span>
+            <h3>${formatTime(segment.startSec)}-${formatTime(segment.endSec)}</h3>
+            <p>${segmentPlainText(segment)}</p>
+            ${edit ? `<small class="segment-edit-note">선택됨: ${edit.label}</small>` : ""}
+            ${renderSegmentActions(segment, edit)}
+          </article>
+        `;
+      }).join("");
 
       const firstDanger = segments.find((segment) => segment.risk === "위험");
       const firstWarning = segments.find((segment) => segment.risk === "주의");
@@ -1585,11 +1744,15 @@
       const firstSilence = segments.find((segment) => segment.risk === "무음");
       const target = firstDanger || firstTailHarsh || firstWarning || firstPhaseRisk || firstSilence;
       if (target) {
+        if (state.selectedSegmentIndex === null) state.selectedSegmentIndex = target.index;
         const detail = target.tailHarshHits?.length ? ` 세부 위치: ${formatTimePrecise(target.tailHarshHits[0].startSec)}.` : "";
-        $("segmentSummary").querySelector("p").textContent = `${formatTime(target.startSec)}-${formatTime(target.endSec)} 구간을 먼저 확인하세요. 판정: ${target.risk}, 작은 스피커: ${target.phaseLabel}, 고역 꼬리: ${target.tailHarshLabel}.${detail} ${target.note}`;
+        $("segmentSummary").querySelector("p").textContent = `${formatTime(target.startSec)}-${formatTime(target.endSec)} 구간을 먼저 확인하세요.${detail} 파형에서 색이 있는 부분을 누르면 해당 구간만 재생됩니다.`;
       } else {
         $("segmentSummary").querySelector("p").textContent = "구간별로 크게 튀는 부분은 보이지 않습니다. 원본과 보정본을 같은 음량으로 비교하세요.";
       }
+      updateSelectedSegment(segments.find((segment) => segment.index === state.selectedSegmentIndex) || target || segments[0]);
+      markSelectedSegmentCard();
+      drawRiskTimeline($("riskTimeline"), segments);
       updateQuickWorkflow();
     }
 
@@ -2564,15 +2727,37 @@
     $("quickProcessBtn").addEventListener("click", () => $("processBtn").click());
     $("quickSaveBtn").addEventListener("click", () => $("saveBtn").click());
 
-    $("segmentRows").addEventListener("click", (event) => {
+    function handleSegmentAction(event) {
       const editButton = event.target.closest("[data-segment-edit]");
       if (editButton) {
         setSegmentEdit(Number(editButton.dataset.index), editButton.dataset.segmentEdit);
-        return;
+        event.stopPropagation();
+        return true;
       }
       const playButton = event.target.closest("[data-segment-play]");
-      if (!playButton) return;
+      if (!playButton) return false;
       playSegment(playButton.dataset.segmentPlay, Number(playButton.dataset.start), Number(playButton.dataset.end));
+      event.stopPropagation();
+      return true;
+    }
+
+    $("segmentCards").addEventListener("click", (event) => {
+      if (handleSegmentAction(event)) return;
+      const card = event.target.closest("[data-segment-card]");
+      if (!card) return;
+      selectSegmentByIndex(Number(card.dataset.segmentCard));
+    });
+
+    $("selectedSegmentBox").addEventListener("click", (event) => {
+      handleSegmentAction(event);
+    });
+
+    $("riskTimeline").addEventListener("click", (event) => {
+      if (!state.segments.length) return;
+      const rect = $("riskTimeline").getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(0.999, (event.clientX - rect.left) / Math.max(rect.width, 1)));
+      const index = Math.min(state.segments.length - 1, Math.floor(ratio * state.segments.length));
+      selectSegmentByIndex(state.segments[index].index, true);
     });
 
     $("segmentAutoStopToggle").addEventListener("change", () => {
