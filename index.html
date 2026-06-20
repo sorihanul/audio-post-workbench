@@ -1903,12 +1903,12 @@
         ctx.globalAlpha = 1;
       });
 
-      const samples = state.originalBuffer ? getMixedSamples(state.originalBuffer) : null;
-      if (samples?.length) {
-        const center = canvas.height / 2;
-        const amp = canvas.height * 0.35;
+      const drawLaneWave = (buffer, center, color) => {
+        const samples = buffer ? getMixedSamples(buffer) : null;
+        if (!samples?.length) return;
+        const amp = canvas.height * 0.18;
         const step = Math.max(1, Math.floor(samples.length / canvas.width));
-        ctx.strokeStyle = "#1f7a5f";
+        ctx.strokeStyle = color;
         ctx.lineWidth = 1.8;
         ctx.beginPath();
         for (let x = 0; x < canvas.width; x++) {
@@ -1924,7 +1924,10 @@
           ctx.lineTo(x, center - min * amp);
         }
         ctx.stroke();
-      }
+      };
+
+      drawLaneWave(state.originalBuffer, canvas.height * 0.25, "#1f7a5f");
+      drawLaneWave(state.processedBuffer, canvas.height * 0.75, "#2d6cdf");
 
       ctx.save();
       ctx.strokeStyle = "#8ea0b8";
