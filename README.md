@@ -38,13 +38,14 @@ No server, Python, Node.js, account, API key, or internet connection is required
 ## What It Does
 
 - Loads an audio file locally in the browser
-- Shows basic safety checks such as peak, loudness, clipping risk, muddiness, harshness, stereo balance, mono risk, and silence
+- Shows basic safety checks such as peak, loudness, clipping risk, muddiness, harshness, high-frequency note tails, stereo balance, mono risk, and silence
 - Checks small-speaker risk from stereo/phase behavior
 - Marks sections that should be listened to again
 - Marks sections that may lose power on small speakers
 - Lets you apply safe section-only fixes:
   - emergency fix for a loud section
   - soften a tiring section
+  - soften a harsh high-frequency note tail
   - reset the section fix
   - automatic smoothing before and after the section
 - Applies conservative correction presets

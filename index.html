@@ -331,6 +331,7 @@
         <div id="dynamicMetric" class="metric"><strong id="dynamicValue">-</strong><span>움직임</span><small id="dynamicHelp">소리의 숨 쉴 공간입니다. 너무 낮으면 이미 눌린 소리입니다.</small></div>
         <div id="mudMetric" class="metric"><strong id="mudValue">-</strong><span>먹먹함</span><small id="mudHelp">저역/저중역이 많으면 보컬과 악기가 답답해질 수 있습니다.</small></div>
         <div id="sharpMetric" class="metric"><strong id="sharpValue">-</strong><span>날카로움</span><small id="sharpHelp">고역이 많으면 귀가 피곤하거나 치찰음이 튈 수 있습니다.</small></div>
+        <div id="tailHarshMetric" class="metric"><strong id="tailHarshValue">-</strong><span>고역 꼬리</span><small id="tailHarshHelp">큰 음 끝에 치치거리는 잔여음이 남는지 봅니다.</small></div>
         <div id="balanceMetric" class="metric"><strong id="balanceValue">-</strong><span>좌우 밸런스</span><small id="balanceHelp">왼쪽/오른쪽 중 한쪽이 과하게 큰지 봅니다.</small></div>
         <div id="monoMetric" class="metric"><strong id="monoValue">-</strong><span>모노 확인</span><small id="monoHelp">스테레오를 하나로 합쳤을 때 소리가 크게 줄어드는지 봅니다.</small></div>
         <div id="phaseMetric" class="metric"><strong id="phaseValue">-</strong><span>작은 스피커</span><small id="phaseHelp">좌우가 서로 지워져 작은 스피커에서 힘이 빠질 위험을 봅니다.</small><div class="phase-meter"><i id="phaseNeedle" class="phase-needle"></i></div></div>
@@ -367,10 +368,10 @@
       </div>
       <table class="compare-table" aria-label="구간별 위험 분석표">
         <thead>
-          <tr><th>구간</th><th>최대 소리</th><th>평균 소리</th><th>판정</th><th>작은 스피커</th><th>확인 포인트</th></tr>
+          <tr><th>구간</th><th>최대 소리</th><th>평균 소리</th><th>판정</th><th>작은 스피커</th><th>고역 꼬리</th><th>확인 포인트</th></tr>
         </thead>
         <tbody id="segmentRows">
-          <tr><td colspan="6">아직 구간 분석 전입니다.</td></tr>
+          <tr><td colspan="7">아직 구간 분석 전입니다.</td></tr>
         </tbody>
       </table>
     </section>
@@ -592,6 +593,94 @@
       return { peak, rms, clipped, clippedRatio: clipped / count, dynamic };
     }
 
+    function computeDiffRmsFromSamples(samples, start, end) {
+      let sum = 0;
+      let count = 0;
+      const safeStart = Math.max(1, start);
+      const safeEnd = Math.max(safeStart + 1, Math.min(end, samples.length));
+      for (let i = safeStart; i < safeEnd; i++) {
+        const diff = (samples[i] - samples[i - 1]) * 0.5;
+        sum += diff * diff;
+        count++;
+      }
+      return Math.sqrt(sum / Math.max(1, count));
+    }
+
+    function computeTailHarshnessWindow(samples, start, end) {
+      const safeStart = Math.max(0, Math.min(start, samples.length - 1));
+      const safeEnd = Math.max(safeStart + 1, Math.min(end, samples.length));
+      const length = Math.max(1, safeEnd - safeStart);
+      const tailStart = safeStart + Math.floor(length * 0.58);
+      const body = computeBasicFromSamples(samples, safeStart, Math.max(tailStart, safeStart + 1));
+      const tail = computeBasicFromSamples(samples, tailStart, safeEnd);
+      const diffRms = computeDiffRmsFromSamples(samples, tailStart, safeEnd);
+      const ratio = diffRms / Math.max(tail.rms, 0.000001);
+      const tailDb = dbNumber(tail.rms);
+      const bodyDb = dbNumber(body.rms);
+      const bodyPeak = body.peak;
+      const decayDb = bodyDb - tailDb;
+      let label = "보통";
+
+      if (tailDb < -48 || bodyPeak < 0.12) {
+        label = "낮음";
+      } else if (ratio > 0.78 && tailDb > -38 && bodyPeak > 0.28 && decayDb > 1.5) {
+        label = "높음";
+      } else if (ratio > 0.58 && tailDb > -42 && bodyPeak > 0.2) {
+        label = "주의";
+      }
+
+      return {
+        tailHarshLabel: label,
+        tailHarshRatio: ratio,
+        tailHarshDb: tailDb,
+        tailHarshNote: describeTailHarshness(label, ratio)
+      };
+    }
+
+    function computeTailHarshnessFromSamples(samples, start, end, sampleRate) {
+      const safeStart = Math.max(0, Math.min(start, samples.length - 1));
+      const safeEnd = Math.max(safeStart + 1, Math.min(end, samples.length));
+      const length = Math.max(1, safeEnd - safeStart);
+      const windowLength = Math.min(length, Math.max(512, Math.floor(sampleRate * 0.78)));
+      const step = Math.max(256, Math.floor(sampleRate * 0.12));
+      const rank = { "낮음": 0, "보통": 1, "주의": 2, "높음": 3 };
+      let worst = computeTailHarshnessWindow(samples, safeStart, safeEnd);
+
+      if (length > windowLength) {
+        for (let windowStart = safeStart; windowStart + Math.floor(windowLength * 0.6) < safeEnd; windowStart += step) {
+          const item = computeTailHarshnessWindow(samples, windowStart, Math.min(safeEnd, windowStart + windowLength));
+          if ((rank[item.tailHarshLabel] || 0) > (rank[worst.tailHarshLabel] || 0) || item.tailHarshRatio > worst.tailHarshRatio) {
+            worst = item;
+          }
+        }
+      }
+
+      return worst;
+    }
+
+    function describeTailHarshness(label, ratio) {
+      if (label === "높음") return `큰 음 끝에 치치거림 후보가 강합니다. 고역 꼬리 완화를 먼저 들어보세요.`;
+      if (label === "주의") return `끝음에 고역 잔여음 후보가 있습니다. 헤드폰과 스피커에서 다시 확인하세요.`;
+      if (label === "낮음") return `끝음 치치거림 후보는 낮습니다.`;
+      return `끝음 고역 꼬리는 크게 튀지 않습니다.`;
+    }
+
+    function summarizeTailHarshness(buffer) {
+      const samples = getMixedSamples(buffer);
+      const segmentCount = Math.min(8, Math.max(1, Math.ceil(buffer.duration)));
+      let worst = { tailHarshLabel: "낮음", tailHarshRatio: 0, tailHarshDb: -120 };
+      for (let index = 0; index < segmentCount; index++) {
+        const start = Math.floor((samples.length * index) / segmentCount);
+        const end = Math.floor((samples.length * (index + 1)) / segmentCount);
+        const item = computeTailHarshnessFromSamples(samples, start, end, buffer.sampleRate);
+        const rank = { "낮음": 0, "보통": 1, "주의": 2, "높음": 3 };
+        if ((rank[item.tailHarshLabel] || 0) > (rank[worst.tailHarshLabel] || 0) || item.tailHarshRatio > worst.tailHarshRatio) {
+          worst = item;
+        }
+      }
+      return worst;
+    }
+
     function formatTime(seconds) {
       const safe = Math.max(0, seconds);
       const min = Math.floor(safe / 60);
@@ -632,12 +721,14 @@
         const endSec = end / buffer.sampleRate;
         const risk = classifySegment(metrics);
         const phase = computeStereoWindow(buffer, start, end);
+        const tailHarsh = computeTailHarshnessFromSamples(samples, start, end, buffer.sampleRate);
         segments.push({
           index,
           startSec,
           endSec,
           ...metrics,
           ...phase,
+          ...tailHarsh,
           risk,
           note: describeSegment({ risk }),
           phaseNote: describeSegmentPhase(phase)
@@ -783,7 +874,8 @@
       const high = await renderBandRms(buffer, "highpass", 5200);
       const lowRatio = low / Math.max(mid, 0.000001);
       const highRatio = high / Math.max(mid, 0.000001);
-      return { ...basic, ...stereo, ...silence, low, mid, high, lowRatio, highRatio };
+      const tailHarsh = summarizeTailHarshness(buffer);
+      return { ...basic, ...stereo, ...silence, ...tailHarsh, low, mid, high, lowRatio, highRatio };
     }
 
     function labelClip(analysis) {
@@ -810,6 +902,10 @@
       return "보통";
     }
 
+    function labelTailHarsh(analysis) {
+      return analysis.tailHarshLabel || "낮음";
+    }
+
     function labelSilence(seconds) {
       if (seconds >= 2) return "긴 편";
       if (seconds >= 0.6) return "조금 있음";
@@ -817,7 +913,7 @@
     }
 
     function resetMetricClasses() {
-      ["peakMetric", "rmsMetric", "clipMetric", "dynamicMetric", "mudMetric", "sharpMetric", "balanceMetric", "monoMetric", "phaseMetric", "leadSilenceMetric", "tailSilenceMetric"].forEach((id) => {
+      ["peakMetric", "rmsMetric", "clipMetric", "dynamicMetric", "mudMetric", "sharpMetric", "tailHarshMetric", "balanceMetric", "monoMetric", "phaseMetric", "leadSilenceMetric", "tailSilenceMetric"].forEach((id) => {
         $(id).className = "metric";
       });
     }
@@ -854,6 +950,14 @@
       return "날카로움은 크게 튀지 않습니다.";
     }
 
+    function describeTailHarshMetric(analysis) {
+      const label = labelTailHarsh(analysis);
+      if (label === "높음") return "큰 음 끝부분에서 치치거림 후보가 강합니다. 구간표의 고역 꼬리 완화를 먼저 비교하세요.";
+      if (label === "주의") return "끝음에 고역 잔여음 후보가 있습니다. 보정본과 원본을 같은 구간에서 비교하세요.";
+      if (label === "낮음") return "끝음 치치거림 후보는 낮습니다.";
+      return "끝음 고역 꼬리는 크게 튀지 않습니다.";
+    }
+
     function updateMetricTone(id, level) {
       if (level === "risky") $(id).classList.add("risky");
       if (level === "warnish") $(id).classList.add("warnish");
@@ -864,6 +968,7 @@
       const dynamic = labelDynamic(analysis);
       const mud = labelMud(analysis);
       const sharp = labelSharp(analysis);
+      const tailHarsh = labelTailHarsh(analysis);
       const warnings = [];
 
       if (clip === "높음") warnings.push("찢어짐 위험이 높아서 음량을 더 키우면 안 됩니다.");
@@ -872,6 +977,8 @@
       if (dynamic === "많이 눌림") warnings.push("이미 눌린 소리라 강한 보정은 피하는 편이 안전합니다.");
       if (mud !== "보통") warnings.push("먹먹함이 있어 저역을 조금 정리하는 보정이 어울립니다.");
       if (sharp !== "보통") warnings.push("날카로움이 있어 고역을 더 올리는 보정은 피하세요.");
+      if (tailHarsh === "높음") warnings.push("큰 음 끝의 치치거림 후보가 있어 고역 꼬리 완화를 먼저 비교하세요.");
+      else if (tailHarsh === "주의") warnings.push("끝음 고역 잔여음 후보가 있어 해당 구간을 다시 들어보세요.");
       if (analysis.balanceLabel === "치우침") warnings.push("좌우 밸런스가 치우쳐 있어 중심이 한쪽으로 밀릴 수 있습니다.");
       if (analysis.monoLabel === "위험") warnings.push("모노에서 소리가 크게 줄어 위상 충돌 가능성이 있습니다.");
       if (analysis.phaseLabel === "위험") warnings.push("작은 스피커에서 좌우가 서로 지워질 수 있습니다.");
@@ -963,7 +1070,7 @@
       state.segments = [];
       state.segmentEdits = [];
       $("segmentSummary").querySelector("p").textContent = "자동 점검을 누르면 구간별로 튀는 부분, 무음, 주의 구간을 표시합니다.";
-      $("segmentRows").innerHTML = '<tr><td colspan="6">아직 구간 분석 전입니다.</td></tr>';
+      $("segmentRows").innerHTML = '<tr><td colspan="7">아직 구간 분석 전입니다.</td></tr>';
       drawRiskTimeline($("riskTimeline"), []);
     }
 
@@ -1020,14 +1127,16 @@
           <td>${db(segment.rms)}</td>
           <td>${segment.risk}</td>
           <td>${segment.phaseLabel}</td>
+          <td>${segment.tailHarshLabel}</td>
           <td>
-            ${segment.note}<br><small>${segment.phaseNote}</small>
+            ${segment.note}<br><small>${segment.phaseNote}</small><br><small>${segment.tailHarshNote}</small>
             ${editText}
             <div class="mini-actions">
               <button data-segment-play="original" data-start="${segment.startSec}" data-end="${segment.endSec}">원본 듣기</button>
               <button data-segment-play="processed" data-start="${segment.startSec}" data-end="${segment.endSec}" ${state.processedBuffer ? "" : "disabled"}>보정본 듣기</button>
               <button data-segment-edit="lower" data-index="${segment.index}" class="${edit?.type === "lower" ? "active" : ""}">튀는 구간 응급처치</button>
               <button data-segment-edit="soften" data-index="${segment.index}" class="${edit?.type === "soften" ? "active" : ""}">귀 아픈 구간 완화</button>
+              <button data-segment-edit="tail" data-index="${segment.index}" class="${edit?.type === "tail" ? "active" : ""}">고역 꼬리 완화</button>
               <button data-segment-edit="clear" data-index="${segment.index}" ${edit ? "" : "disabled"}>해제</button>
             </div>
           </td>
@@ -1039,10 +1148,11 @@
       const firstDanger = segments.find((segment) => segment.risk === "위험");
       const firstWarning = segments.find((segment) => segment.risk === "주의");
       const firstPhaseRisk = segments.find((segment) => segment.phaseLabel === "위험" || segment.phaseLabel === "확인");
+      const firstTailHarsh = segments.find((segment) => segment.tailHarshLabel === "높음" || segment.tailHarshLabel === "주의");
       const firstSilence = segments.find((segment) => segment.risk === "무음");
-      const target = firstDanger || firstWarning || firstPhaseRisk || firstSilence;
+      const target = firstDanger || firstTailHarsh || firstWarning || firstPhaseRisk || firstSilence;
       if (target) {
-        $("segmentSummary").querySelector("p").textContent = `${formatTime(target.startSec)}-${formatTime(target.endSec)} 구간을 먼저 확인하세요. 판정: ${target.risk}, 작은 스피커: ${target.phaseLabel}. ${target.note}`;
+        $("segmentSummary").querySelector("p").textContent = `${formatTime(target.startSec)}-${formatTime(target.endSec)} 구간을 먼저 확인하세요. 판정: ${target.risk}, 작은 스피커: ${target.phaseLabel}, 고역 꼬리: ${target.tailHarshLabel}. ${target.note}`;
       } else {
         $("segmentSummary").querySelector("p").textContent = "구간별로 크게 튀는 부분은 보이지 않습니다. 원본과 보정본을 같은 음량으로 비교하세요.";
       }
@@ -1073,20 +1183,22 @@
       if (!segment) return;
       state.segmentEdits = state.segmentEdits.filter((edit) => edit.index !== index);
       if (type !== "clear") {
+        const isTail = type === "tail";
+        const segmentLength = Math.max(0.1, segment.endSec - segment.startSec);
         state.segmentEdits.push({
           index,
           type,
-          startSec: segment.startSec,
+          startSec: isTail ? segment.startSec + segmentLength * 0.48 : segment.startSec,
           endSec: segment.endSec,
-          label: type === "lower" ? "튀는 구간 응급처치" : "귀 아픈 구간 완화",
-          gainDb: type === "lower" ? -1.8 : -0.7,
-          softenMix: type === "soften" ? 0.28 : 0
+          label: type === "lower" ? "튀는 구간 응급처치" : type === "tail" ? "고역 꼬리 완화" : "귀 아픈 구간 완화",
+          gainDb: type === "lower" ? -1.8 : type === "tail" ? -0.35 : -0.7,
+          softenMix: type === "soften" ? 0.28 : type === "tail" ? 0.42 : 0
         });
       }
       updateSegmentAnalysis(state.segments);
       const message = type === "clear"
         ? `${formatTime(segment.startSec)}-${formatTime(segment.endSec)} 구간 응급처치를 해제했습니다.`
-        : `${formatTime(segment.startSec)}-${formatTime(segment.endSec)} 구간에 '${type === "lower" ? "튀는 구간 응급처치" : "귀 아픈 구간 완화"}'를 선택했습니다. 앞뒤 연결부까지 부드럽게 적용됩니다.`;
+        : `${formatTime(segment.startSec)}-${formatTime(segment.endSec)} 구간에 '${type === "lower" ? "튀는 구간 응급처치" : type === "tail" ? "고역 꼬리 완화" : "귀 아픈 구간 완화"}'를 선택했습니다. 앞뒤 연결부까지 부드럽게 적용됩니다.`;
       clearProcessedAfterEdit(message);
     }
 
@@ -1095,6 +1207,7 @@
       if (labelClip(analysis) === "높음" || analysis.peak >= 0.985) return "깨짐";
       if (segments.some((segment) => segment.risk === "위험")) return "위험 구간";
       if (segments.some((segment) => segment.phaseLabel === "위험") || analysis.phaseLabel === "위험") return "작은 스피커";
+      if (segments.some((segment) => segment.tailHarshLabel === "높음" || segment.tailHarshLabel === "주의") || labelTailHarsh(analysis) === "높음" || labelTailHarsh(analysis) === "주의") return "고역 꼬리";
       if (analysis.monoLabel === "위험") return "모노";
       if (analysis.balanceLabel === "치우침") return "좌우";
       if (labelDynamic(analysis) === "많이 눌림") return "눌림";
@@ -1110,11 +1223,14 @@
       const dynamic = labelDynamic(analysis);
       const mud = labelMud(analysis);
       const sharp = labelSharp(analysis);
+      const tailHarsh = labelTailHarsh(analysis);
       const dangerousSegments = segments.filter((segment) => segment.risk === "위험").length;
       const warningSegments = segments.filter((segment) => segment.risk === "주의").length;
       const silenceSegments = segments.filter((segment) => segment.risk === "무음").length;
       const phaseDangerSegments = segments.filter((segment) => segment.phaseLabel === "위험").length;
       const phaseCheckSegments = segments.filter((segment) => segment.phaseLabel === "확인").length;
+      const tailHarshSegments = segments.filter((segment) => segment.tailHarshLabel === "높음").length;
+      const tailWarnSegments = segments.filter((segment) => segment.tailHarshLabel === "주의").length;
 
       if (clip === "높음") score -= 28;
       else if (clip === "주의" || analysis.peak >= 0.96) score -= 14;
@@ -1123,6 +1239,8 @@
       else if (mud === "주의") score -= 5;
       if (sharp === "높음") score -= 10;
       else if (sharp === "주의") score -= 5;
+      if (tailHarsh === "높음") score -= 10;
+      else if (tailHarsh === "주의") score -= 5;
       if (analysis.balanceLabel === "치우침") score -= 10;
       else if (analysis.balanceLabel === "주의") score -= 5;
       if (analysis.monoLabel === "위험") score -= 16;
@@ -1136,6 +1254,8 @@
       score -= Math.min(6, silenceSegments * 2);
       score -= Math.min(16, phaseDangerSegments * 6);
       score -= Math.min(8, phaseCheckSegments * 2);
+      score -= Math.min(12, tailHarshSegments * 4);
+      score -= Math.min(6, tailWarnSegments * 2);
       return Math.max(0, Math.min(100, Math.round(score)));
     }
 
@@ -1146,6 +1266,7 @@
       const dynamic = labelDynamic(analysis);
       const mud = labelMud(analysis);
       const sharp = labelSharp(analysis);
+      const tailHarsh = labelTailHarsh(analysis);
 
       if (analysis.monoLabel === "위험" || analysis.phaseLabel === "위험" || phaseDangerCount > 0) {
         return {
@@ -1161,11 +1282,11 @@
           reason: "피크/구간 위험 또는 과압축 신호가 있어 강한 보정보다 약하게부터 비교하는 편이 안전합니다."
         };
       }
-      if (mud !== "보통" || sharp !== "보통" || analysis.balanceLabel !== "균형") {
+      if (mud !== "보통" || sharp !== "보통" || tailHarsh !== "낮음" || analysis.balanceLabel !== "균형") {
         return {
           preset: "normal",
           label: "기본",
-          reason: "먹먹함, 날카로움, 좌우 치우침 후보가 있어 기본 보정부터 비교해볼 만합니다."
+          reason: "먹먹함, 날카로움, 고역 꼬리 또는 좌우 치우침 후보가 있어 기본 보정부터 비교해볼 만합니다."
         };
       }
       return {
@@ -1180,6 +1301,7 @@
       if (analysis.phaseLabel === "위험" || analysis.monoLabel === "위험") return "softenHigh";
       if (labelClip(analysis) !== "낮음" || analysis.peak >= 0.96 || labelDynamic(analysis) === "많이 눌림") return "softenHigh";
       if (labelMud(analysis) !== "보통") return "cleanLow";
+      if (labelTailHarsh(analysis) !== "낮음") return "softenHigh";
       if (labelSharp(analysis) !== "보통") return "softenHigh";
       if (analysis.balanceLabel === "균형" && analysis.monoLabel === "안전") return "separation";
       return "clarity";
@@ -1290,6 +1412,7 @@
       const dynamic = labelDynamic(analysis);
       const mud = labelMud(analysis);
       const sharp = labelSharp(analysis);
+      const tailHarsh = labelTailHarsh(analysis);
 
       resetMetricClasses();
       $("peakValue").textContent = db(analysis.peak);
@@ -1298,6 +1421,7 @@
       $("dynamicValue").textContent = dynamic;
       $("mudValue").textContent = mud;
       $("sharpValue").textContent = sharp;
+      $("tailHarshValue").textContent = tailHarsh;
       $("balanceValue").textContent = analysis.balanceLabel;
       $("monoValue").textContent = analysis.monoLabel;
       $("phaseValue").textContent = analysis.phaseLabel;
@@ -1309,6 +1433,7 @@
       $("dynamicHelp").textContent = describeDynamic(analysis);
       $("mudHelp").textContent = describeBand(mud, "mud");
       $("sharpHelp").textContent = describeBand(sharp, "sharp");
+      $("tailHarshHelp").textContent = describeTailHarshMetric(analysis);
       $("balanceHelp").textContent = analysis.balanceText;
       $("monoHelp").textContent = analysis.monoText;
       $("phaseHelp").textContent = `${analysis.phaseText} 좌우 맞물림: ${analysis.correlation.toFixed(2)}, 모노 손실: ${Math.abs(analysis.monoLossDb).toFixed(1)} dB`;
@@ -1326,6 +1451,7 @@
       updateMetricTone("dynamicMetric", dynamic === "많이 눌림" ? "warnish" : "");
       updateMetricTone("mudMetric", mud === "높음" ? "risky" : mud === "주의" ? "warnish" : "");
       updateMetricTone("sharpMetric", sharp === "높음" ? "risky" : sharp === "주의" ? "warnish" : "");
+      updateMetricTone("tailHarshMetric", tailHarsh === "높음" ? "risky" : tailHarsh === "주의" ? "warnish" : "");
       updateMetricTone("balanceMetric", analysis.balanceLabel === "치우침" ? "risky" : analysis.balanceLabel === "주의" ? "warnish" : "");
       updateMetricTone("monoMetric", analysis.monoLabel === "위험" ? "risky" : analysis.monoLabel === "주의" ? "warnish" : "");
       updateMetricTone("phaseMetric", analysis.phaseLabel === "위험" ? "risky" : analysis.phaseLabel === "확인" ? "warnish" : "");
@@ -1410,6 +1536,7 @@
       const weight = presetName === "strong" ? 1.2 : presetName === "normal" ? 1 : 0.7;
       const mud = labelMud(analysis);
       const sharp = labelSharp(analysis);
+      const tailHarsh = labelTailHarsh(analysis);
       const clip = labelClip(analysis);
       const dynamic = labelDynamic(analysis);
       const plan = {
@@ -1427,6 +1554,12 @@
       else if (mud === "주의") plan.mudCut -= 0.7 * weight;
       if (sharp === "높음") plan.deharshCut -= 1.25 * weight;
       else if (sharp === "주의") plan.deharshCut -= 0.75 * weight;
+      if (tailHarsh === "높음") {
+        plan.deharshCut -= 0.9 * weight;
+        plan.airGain -= 0.35 * weight;
+      } else if (tailHarsh === "주의") {
+        plan.deharshCut -= 0.45 * weight;
+      }
       if (clip !== "낮음" || dynamic === "많이 눌림") plan.deharshCut -= 0.35 * weight;
 
       if (resolvedGoal === "clarity") {
@@ -1457,6 +1590,7 @@
       if (plan.mudCut < -0.2) logsPush(plan, "저음/저중역 뭉침 후보를 줄였습니다.");
       if (plan.clarityBoost > 0.2) logsPush(plan, "보컬과 중심 악기가 덜 묻히도록 선명도를 조금 보강했습니다.");
       if (plan.deharshCut < -0.2 || plan.airGain < -0.2) logsPush(plan, "귀가 피곤한 고역 후보를 부드럽게 눌렀습니다.");
+      if (tailHarsh !== "낮음") logsPush(plan, "큰 음 끝의 치치거림 후보를 줄이도록 고역 꼬리를 보수적으로 눌렀습니다.");
       if (plan.width > 1.01) {
         logsPush(plan, "모노 손실이 낮은 파일이라 스테레오 폭을 아주 조금 넓혔습니다.");
       } else if (resolvedGoal === "separation") {
@@ -1513,7 +1647,7 @@
         const editStart = clamp(coreStart - bridgeSamples, 0, buffer.length - 1);
         const editEnd = clamp(coreEnd + bridgeSamples, editStart + 1, buffer.length);
         const gain = dbToGain(edit.gainDb || 0);
-        const mix = edit.type === "soften" ? clamp(edit.softenMix || 0.28, 0, 0.45) : 0;
+        const mix = edit.type === "soften" || edit.type === "tail" ? clamp(edit.softenMix || 0.28, 0, edit.type === "tail" ? 0.55 : 0.45) : 0;
 
         for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
           const data = buffer.getChannelData(channel);
@@ -1539,7 +1673,9 @@
           const range = `${formatTime(edit.startSec)}-${formatTime(edit.endSec)}`;
           const log = edit.type === "lower"
             ? `${range} 구간과 앞뒤 연결부를 자연스럽게 낮췄습니다.`
-            : `${range} 구간과 앞뒤 연결부의 귀 아픈 느낌을 부드럽게 줄였습니다.`;
+            : edit.type === "tail"
+              ? `${range} 끝부분과 앞뒤 연결부의 치치거림 후보를 부드럽게 줄였습니다.`
+              : `${range} 구간과 앞뒤 연결부의 귀 아픈 느낌을 부드럽게 줄였습니다.`;
           logsPush(plan, log);
         }
       });
@@ -1770,6 +1906,7 @@
       $("dynamicValue").textContent = "-";
       $("mudValue").textContent = "-";
       $("sharpValue").textContent = "-";
+      $("tailHarshValue").textContent = "-";
       $("balanceValue").textContent = "-";
       $("monoValue").textContent = "-";
       $("phaseValue").textContent = "-";
@@ -1781,6 +1918,7 @@
       $("dynamicHelp").textContent = "소리의 숨 쉴 공간입니다. 너무 낮으면 이미 눌린 소리입니다.";
       $("mudHelp").textContent = "저역/저중역이 많으면 보컬과 악기가 답답해질 수 있습니다.";
       $("sharpHelp").textContent = "고역이 많으면 귀가 피곤하거나 치찰음이 튈 수 있습니다.";
+      $("tailHarshHelp").textContent = "큰 음 끝에 치치거리는 잔여음이 남는지 봅니다.";
       $("balanceHelp").textContent = "왼쪽/오른쪽 중 한쪽이 과하게 큰지 봅니다.";
       $("monoHelp").textContent = "스테레오를 하나로 합쳤을 때 소리가 크게 줄어드는지 봅니다.";
       $("phaseHelp").textContent = "좌우가 서로 지워져 작은 스피커에서 힘이 빠질 위험을 봅니다.";
