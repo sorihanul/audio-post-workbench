@@ -375,9 +375,9 @@
   <main>
     <nav class="view-tabs" aria-label="화면 선택">
       <button class="tab-button active" data-tab="main">메인</button>
+      <button class="tab-button" data-tab="settings">설정</button>
       <button class="tab-button" data-tab="sections">구간 확인</button>
       <button class="tab-button" data-tab="result">보정 결과</button>
-      <button class="tab-button" data-tab="settings">설정</button>
       <button class="tab-button" data-tab="compare">비교</button>
     </nav>
 
@@ -396,6 +396,10 @@
 
     <section class="active-view" data-view="main">
       <h2>2. 자동 점검</h2>
+      <div class="actions">
+        <button id="analyzeBtn" class="primary" disabled>자동 점검</button>
+      </div>
+      <p id="analysisNote" class="status">아직 분석 전입니다.</p>
       <div class="grid">
         <div id="peakMetric" class="metric"><strong id="peakValue">-</strong><span>최대 소리</span><small id="peakHelp">가장 큰 순간이 얼마나 0 dB에 가까운지 봅니다.</small></div>
         <div id="rmsMetric" class="metric"><strong id="rmsValue">-</strong><span>평균 소리</span><small id="rmsHelp">노래 전체가 체감상 어느 정도 크게 들릴지 봅니다.</small></div>
@@ -419,10 +423,6 @@
         <div class="score-card"><strong id="recommendedPreset">-</strong><span>앱의 추천</span></div>
         <div class="score-card"><strong id="mainRisk">-</strong><span>먼저 볼 위험</span></div>
       </div>
-      <div class="actions">
-        <button id="analyzeBtn" class="primary" disabled>자동 점검</button>
-      </div>
-      <p id="analysisNote" class="status">아직 분석 전입니다.</p>
     </section>
 
     <section class="active-view" data-view="main">
