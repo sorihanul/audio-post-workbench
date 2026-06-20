@@ -760,7 +760,7 @@
           <button id="abOriginalBtn" disabled>원본 듣기</button>
           <button id="abProcessedBtn" disabled>보정본 듣기</button>
         </div>
-        <audio id="abAudio" controls></audio>
+        <audio id="abAudio" controls preload="auto"></audio>
         <p id="playbackClock" class="playback-clock">재생 위치: -</p>
         <p id="abNote" class="status">파일을 넣으면 원본을, 보정본을 만들면 같은 플레이어에서 번갈아 들을 수 있습니다.</p>
       </div>
@@ -768,12 +768,12 @@
         <div>
           <h3>원본</h3>
           <canvas id="originalWave" width="900" height="160"></canvas>
-          <audio id="originalAudio" controls></audio>
+          <audio id="originalAudio" controls preload="auto"></audio>
         </div>
         <div>
           <h3>보정본</h3>
           <canvas id="processedWave" width="900" height="160"></canvas>
-          <audio id="processedAudio" controls></audio>
+          <audio id="processedAudio" controls preload="auto"></audio>
         </div>
       </div>
     </section>
@@ -3152,6 +3152,7 @@
       state.segmentStopEndSec = null;
       state.segmentStopLabel = "";
       const audio = $("abAudio");
+      const wasPlaying = Boolean(audio.src) && !audio.paused && !audio.ended;
       const currentTime = Number.isFinite(targetTime)
         ? Math.max(0, targetTime)
         : Number.isFinite(audio.currentTime)
@@ -3161,6 +3162,7 @@
       if (!source) return;
 
       const sameSource = audio.src === source;
+      const shouldResume = shouldPlay || wasPlaying;
       let didSeek = false;
       const seekAndMaybePlay = () => {
         if (didSeek) return;
@@ -3168,7 +3170,7 @@
         if (Number.isFinite(audio.duration)) {
           audio.currentTime = Math.min(currentTime, Math.max(0, audio.duration - 0.1));
         }
-        if (shouldPlay) {
+        if (shouldResume) {
           audio.play().catch(() => {
             $("abNote").textContent = "재생 버튼을 한 번 더 누르면 해당 구간부터 들을 수 있습니다.";
           });
@@ -3178,10 +3180,12 @@
       if (!sameSource) {
         audio.addEventListener("loadedmetadata", seekAndMaybePlay, { once: true });
         audio.src = source;
+        audio.load();
       } else if (audio.readyState >= 1) {
         seekAndMaybePlay();
       } else {
         audio.addEventListener("loadedmetadata", seekAndMaybePlay, { once: true });
+        audio.load();
       }
       $("abOriginalBtn").classList.toggle("primary", kind === "original");
       $("abProcessedBtn").classList.toggle("primary", kind === "processed");
@@ -3291,7 +3295,9 @@
       state.processedFileName = `${state.fileName}_post_${state.preset}.wav`;
       state.originalUrl = URL.createObjectURL(file);
       $("originalAudio").src = state.originalUrl;
+      $("originalAudio").load();
       $("processedAudio").removeAttribute("src");
+      $("processedAudio").load();
       $("saveBtn").disabled = true;
       resetAbPlayer();
       $("fileNote").textContent = `${file.name} 불러오는 중...`;
@@ -3433,6 +3439,7 @@
         state.processedUrl = URL.createObjectURL(wav);
         state.processedFileName = `${state.fileName}_post_${state.preset}_${plan.goalName}${state.segmentEdits.length ? "_segments" : ""}.wav`;
         $("processedAudio").src = state.processedUrl;
+        $("processedAudio").load();
         $("saveBtn").disabled = false;
         $("abProcessedBtn").disabled = false;
         if (state.segments.length) updateSegmentAnalysis(state.segments);
