@@ -228,16 +228,16 @@
       border-color: #122033;
       color: #fff;
     }
-    .segment-toggle-item {
-      display: inline-flex;
-      flex-wrap: nowrap;
-      gap: 4px;
-      align-items: stretch;
+    .detail-toggle-play.active-source {
+      background: #122033;
+      border-color: #122033;
+      color: #fff;
     }
-    .segment-toggle-item button {
-      margin: 0;
-    }
-    .segment-toggle-item .toggle-play {
+    .detail-toggle-play {
+      min-height: 30px;
+      padding: 4px 10px;
+      margin-left: 10px;
+      font-size: 13px;
       border-color: #9bcbb9;
       color: var(--accent);
       background: #fbfdfc;
@@ -614,10 +614,10 @@
         <button disabled>자동 점검 후 큰 영역이 표시됩니다.</button>
       </div>
       <details id="detailSegmentsBox" class="detail-segments">
-        <summary>선택한 영역 세부 구간 보기</summary>
-      <div id="segmentStrip" class="segment-strip">
+        <summary><span id="detailSegmentsSummaryText">선택한 영역 세부 구간 보기</span><button id="detailTogglePlayBtn" class="detail-toggle-play" type="button" disabled>▶ 원본</button></summary>
+        <div id="segmentStrip" class="segment-strip">
           <button disabled>큰 영역을 선택하면 세부 구간이 표시됩니다.</button>
-      </div>
+        </div>
       </details>
     </section>
 
@@ -771,7 +771,7 @@
       segmentPlayKind: null,
       segmentPlayStartSec: null,
       segmentPlayEndSec: null,
-      segmentToggleNextKind: {},
+      detailToggleNextKind: "original",
       originalScore: null
     };
 
@@ -1643,11 +1643,13 @@
       state.segmentEdits = [];
       state.selectedSegmentIndex = null;
       state.selectedAreaIndex = null;
-      state.segmentToggleNextKind = {};
+      state.detailToggleNextKind = "original";
       $("segmentSummary").querySelector("p").textContent = "자동 점검을 누르면 큰 영역별로 다시 들어볼 부분을 표시합니다.";
       $("selectedSegmentDetail").innerHTML = "<p>자동 점검 후 파형을 누르면 그 영역만 들을 수 있습니다.</p>";
       $("areaStrip").innerHTML = '<button disabled>자동 점검 후 큰 영역이 표시됩니다.</button>';
       $("segmentStrip").innerHTML = '<button disabled>큰 영역을 선택하면 세부 구간이 표시됩니다.</button>';
+      $("detailSegmentsSummaryText").textContent = "선택한 영역 세부 구간 보기";
+      updateDetailToggleButton();
       $("detailSegmentsBox").open = false;
       $("segmentPlayNote").textContent = "영역 듣기를 누르면 선택한 영역만 확인할 수 있습니다.";
       drawRiskTimeline($("riskTimeline"), []);
@@ -1810,37 +1812,41 @@
       }).join("");
     }
 
-    function segmentToggleLabel(index) {
+    function detailToggleLabel() {
       if (!state.processedBuffer) return "▶ 원본";
-      return (state.segmentToggleNextKind[index] || "original") === "processed"
+      return state.detailToggleNextKind === "processed"
         ? "▶ 보정본"
         : "▶ 원본";
     }
 
-    function updateSegmentToggleButtons() {
-      document.querySelectorAll("[data-segment-toggle]").forEach((button) => {
-        button.textContent = segmentToggleLabel(Number(button.dataset.segmentToggle));
-      });
+    function getDetailToggleTargetSegment() {
+      const selectedArea = state.segmentAreas.find((area) => area.index === state.selectedAreaIndex);
+      if (!selectedArea?.segments?.length) return null;
+      return selectedArea.segments.find((segment) => segment.index === state.selectedSegmentIndex) || selectedArea.segments[0];
+    }
+
+    function updateDetailToggleButton() {
+      const button = $("detailTogglePlayBtn");
+      if (!button) return;
+      const target = getDetailToggleTargetSegment();
+      button.disabled = !target;
+      button.textContent = detailToggleLabel();
+      if (target) {
+        button.title = `${formatTime(target.startSec)}-${formatTime(target.endSec)} 구간을 원본과 보정본으로 번갈아 듣습니다.`;
+      } else {
+        button.title = "세부 구간을 선택하면 원본과 보정본을 번갈아 들을 수 있습니다.";
+      }
     }
 
     function renderSegmentStrip(segments) {
       $("segmentStrip").innerHTML = segments.map((segment) => `
-        <span class="segment-toggle-item">
-          <button
-            class="${riskClass(segment.risk)} ${state.selectedSegmentIndex === segment.index ? "selected" : ""}"
-            data-segment-strip="${segment.index}"
-            title="${formatTime(segment.startSec)}-${formatTime(segment.endSec)} ${riskPlainLabel(segment)}"
-          >
-            ${segment.index + 1}. ${formatTime(segment.startSec)}
-          </button>
-          <button
-            class="toggle-play"
-            data-segment-toggle="${segment.index}"
-            data-start="${segment.startSec}"
-            data-end="${segment.endSec}"
-            title="${formatTime(segment.startSec)}-${formatTime(segment.endSec)} 원본과 보정본을 번갈아 듣습니다."
-          >${segmentToggleLabel(segment.index)}</button>
-        </span>
+        <button
+          class="${riskClass(segment.risk)} ${state.selectedSegmentIndex === segment.index ? "selected" : ""}"
+          data-segment-strip="${segment.index}"
+          title="${formatTime(segment.startSec)}-${formatTime(segment.endSec)} ${riskPlainLabel(segment)}"
+        >
+          ${segment.index + 1}. ${formatTime(segment.startSec)}
+        </button>
       `).join("");
     }
 
@@ -1874,7 +1880,8 @@
         ${renderAreaActions(area, edit)}
       `;
       renderSegmentStrip(area.segments);
-      $("detailSegmentsBox").querySelector("summary").textContent = `${area.label} 세부 구간 보기`;
+      $("detailSegmentsSummaryText").textContent = `${area.label} 세부 구간 보기`;
+      updateDetailToggleButton();
     }
 
     function markSelectedControls() {
@@ -1888,7 +1895,7 @@
       if (state.segmentPlayKind) {
         updateSegmentSourceDisplay(state.segmentPlayKind, state.segmentPlayStartSec, state.segmentPlayEndSec);
       }
-      updateSegmentToggleButtons();
+      updateDetailToggleButton();
     }
 
     function getSelectionPlaybackKind() {
@@ -1918,14 +1925,14 @@
       if (shouldPlay) playSegment(playbackKind || getSelectionPlaybackKind(), segment.startSec, segment.endSec);
     }
 
-    function toggleSegmentPlayback(index) {
-      const segment = state.segments.find((item) => item.index === index);
+    function toggleDetailSegmentPlayback() {
+      const segment = getDetailToggleTargetSegment();
       if (!segment) return;
-      const nextKind = state.processedUrl ? (state.segmentToggleNextKind[index] || "original") : "original";
-      selectSegmentByIndex(index, false);
+      const nextKind = state.processedUrl ? state.detailToggleNextKind : "original";
+      selectSegmentByIndex(segment.index, false);
       playSegment(nextKind, segment.startSec, segment.endSec);
-      state.segmentToggleNextKind[index] = state.processedUrl && nextKind === "original" ? "processed" : "original";
-      updateSegmentToggleButtons();
+      state.detailToggleNextKind = state.processedUrl && nextKind === "original" ? "processed" : "original";
+      updateDetailToggleButton();
     }
 
     function drawRiskTimeline(canvas, segments) {
@@ -2110,7 +2117,7 @@
       if (state.processedUrl) URL.revokeObjectURL(state.processedUrl);
       state.processedUrl = null;
       state.processedBuffer = null;
-      state.segmentToggleNextKind = {};
+      state.detailToggleNextKind = "original";
       $("processedAudio").removeAttribute("src");
       $("saveBtn").disabled = true;
       $("abProcessedBtn").disabled = true;
@@ -2759,7 +2766,7 @@
       const badge = $("segmentSourceBadge");
       const hint = $("segmentSourceHint");
       badge.classList.remove("original", "processed");
-      document.querySelectorAll("[data-area-play], [data-segment-play], [data-segment-toggle]").forEach((button) => {
+      document.querySelectorAll("[data-area-play], [data-segment-play], #detailTogglePlayBtn").forEach((button) => {
         button.classList.remove("active-source");
       });
 
@@ -2793,13 +2800,10 @@
             button.classList.add("active-source");
           }
         });
-        document.querySelectorAll("[data-segment-toggle]").forEach((button) => {
-          const buttonStart = Number(button.dataset.start);
-          const buttonEnd = Number(button.dataset.end);
-          if (Math.abs(buttonStart - startSec) < 0.03 && Math.abs(buttonEnd - endSec) < 0.03) {
-            button.classList.add("active-source");
-          }
-        });
+        const target = getDetailToggleTargetSegment();
+        if (target && Math.abs(target.startSec - startSec) < 0.03 && Math.abs(target.endSec - endSec) < 0.03) {
+          $("detailTogglePlayBtn").classList.add("active-source");
+        }
       }
     }
 
@@ -2861,12 +2865,17 @@
       state.segmentPlayKind = kind;
       state.segmentPlayStartSec = startSec;
       state.segmentPlayEndSec = endSec;
+      const target = getDetailToggleTargetSegment();
+      if (target && Math.abs(target.startSec - startSec) < 0.03 && Math.abs(target.endSec - endSec) < 0.03) {
+        state.detailToggleNextKind = state.processedUrl && kind === "original" ? "processed" : "original";
+      }
       state.segmentStopEndSec = endSec;
       state.segmentStopLabel = `${label} ${formatTime(startSec)}-${formatTime(endSec)}`;
       const stopText = $("segmentAutoStopToggle").checked ? "구간 끝에서 자동으로 멈춥니다." : "자동 멈춤은 꺼져 있습니다.";
       $("abNote").textContent = `${state.segmentStopLabel} 구간으로 이동했습니다. ${stopText}`;
       $("segmentPlayNote").textContent = `${state.segmentStopLabel} 재생 중입니다. ${stopText}`;
       updateSegmentSourceDisplay(kind, startSec, endSec, `${formatTime(startSec)}-${formatTime(endSec)} 구간을 ${label}으로 듣고 있습니다. ${stopText}`);
+      updateDetailToggleButton();
     }
 
     function resetAbPlayer() {
@@ -2880,9 +2889,11 @@
       state.segmentPlayKind = null;
       state.segmentPlayStartSec = null;
       state.segmentPlayEndSec = null;
+      state.detailToggleNextKind = "original";
       $("abNote").textContent = "파일을 넣으면 원본을, 보정본을 만들면 같은 플레이어에서 번갈아 들을 수 있습니다.";
       $("segmentPlayNote").textContent = "구간 듣기를 누르면 선택한 구간만 확인할 수 있습니다.";
       updateSegmentSourceDisplay();
+      updateDetailToggleButton();
     }
 
     function encodeWav(buffer) {
@@ -3137,12 +3148,6 @@
         return true;
       }
       const playButton = event.target.closest("[data-segment-play]");
-      const toggleButton = event.target.closest("[data-segment-toggle]");
-      if (toggleButton) {
-        toggleSegmentPlayback(Number(toggleButton.dataset.segmentToggle));
-        event.stopPropagation();
-        return true;
-      }
       if (!playButton) return false;
       playSegment(playButton.dataset.segmentPlay, Number(playButton.dataset.start), Number(playButton.dataset.end));
       event.stopPropagation();
@@ -3156,12 +3161,6 @@
     });
 
     $("segmentStrip").addEventListener("click", (event) => {
-      const toggleButton = event.target.closest("[data-segment-toggle]");
-      if (toggleButton) {
-        toggleSegmentPlayback(Number(toggleButton.dataset.segmentToggle));
-        event.stopPropagation();
-        return;
-      }
       const button = event.target.closest("[data-segment-strip]");
       if (!button) return;
       selectSegmentByIndex(Number(button.dataset.segmentStrip), true);
@@ -3169,6 +3168,12 @@
 
     $("selectedSegmentBox").addEventListener("click", (event) => {
       handleSegmentAction(event);
+    });
+
+    $("detailTogglePlayBtn").addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleDetailSegmentPlayback();
     });
 
     $("riskTimeline").addEventListener("click", (event) => {
