@@ -615,6 +615,7 @@
       </div>
       <div class="option-row">
         <label class="option"><input id="segmentAutoStopToggle" type="checkbox" checked> 구간 끝나면 자동 멈춤</label>
+        <button id="segmentStopBtn" disabled>멈춤</button>
       </div>
       <div class="play-source-panel" aria-live="polite">
         <span id="segmentSourceBadge" class="play-source-label">아직 재생 전</span>
@@ -1158,13 +1159,6 @@
       ctx.moveTo(x, 0);
       ctx.lineTo(x, canvas.height);
       ctx.stroke();
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x - 7, 10);
-      ctx.lineTo(x + 7, 10);
-      ctx.closePath();
-      ctx.fill();
       ctx.restore();
     }
 
@@ -1182,6 +1176,11 @@
         clock.classList.add(playback.kind);
         clock.textContent = `${playbackLabel(playback.kind)} ${formatTime(playback.currentTime)} / ${formatTime(playback.duration)}`;
       });
+      const stopButton = $("segmentStopBtn");
+      if (stopButton) {
+        const segmentAudio = $("abAudio");
+        stopButton.disabled = !segmentAudio || segmentAudio.paused || segmentAudio.ended || state.activePlayback.player !== "abAudio";
+      }
     }
 
     function redrawPlaybackCanvases() {
@@ -3395,9 +3394,28 @@
       });
     }
 
+    function stopSegmentPlayback() {
+      const audio = $("abAudio");
+      if (!audio) return;
+      audio.pause();
+      state.segmentStopEndSec = null;
+      state.segmentStopLabel = "";
+      $("segmentPlayNote").textContent = "재생을 멈췄습니다. 다른 구간을 누르면 그 구간부터 다시 들을 수 있습니다.";
+      $("abNote").textContent = "구간 재생을 멈췄습니다. 원본과 보정본 버튼으로 같은 위치에서 다시 비교할 수 있습니다.";
+      updateSegmentSourceDisplay(
+        state.segmentPlayKind,
+        state.segmentPlayStartSec,
+        state.segmentPlayEndSec,
+        "재생을 멈췄습니다."
+      );
+      redrawPlaybackCanvases();
+    }
+
     bindPlaybackProgress("abAudio", () => state.segmentPlayKind || audioKindFromUrl($("abAudio")));
     bindPlaybackProgress("originalAudio", () => "original");
     bindPlaybackProgress("processedAudio", () => state.processedUrl ? "processed" : null);
+
+    $("segmentStopBtn").addEventListener("click", stopSegmentPlayback);
 
     $("segmentAutoStopToggle").addEventListener("change", () => {
       const mode = $("segmentAutoStopToggle").checked ? "켜짐" : "꺼짐";
