@@ -23,7 +23,7 @@ No server, Python, Node.js, account, API key, or internet connection is required
 3. Run the automatic check on the Main tab.
 4. Use `Auto-select suspect section`.
 5. Process and save from the same Main tab workflow.
-6. Open Settings, Section Check, Result, or Compare only when needed.
+6. Open Settings, Section Check, Result, Compare, or Explanation only when needed.
 
 ## Usage Guidelines
 
@@ -37,7 +37,7 @@ No server, Python, Node.js, account, API key, or internet connection is required
 ## What It Does
 
 - Loads an audio file locally in the browser
-- Splits the app into Main, Settings, Section Check, Result, and Compare tabs
+- Splits the app into Main, Settings, Section Check, Result, Compare, and Explanation tabs
 - Shows basic safety checks such as peak, loudness, clipping risk, muddiness, harshness, high-frequency note tails, stereo balance, mono risk, and silence
 - Checks small-speaker risk from stereo/phase behavior
 - Marks sections that should be listened to again
@@ -58,6 +58,7 @@ No server, Python, Node.js, account, API key, or internet connection is required
   - Softer highs
   - Safer separation
 - Compares original and processed audio
+- Explains the original and processed sound in plain language from local analysis values
 - Exports the processed result as WAV
 
 ## Privacy

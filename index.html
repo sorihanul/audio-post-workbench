@@ -133,6 +133,21 @@
     }
     .diagnosis strong { display: block; margin-bottom: 6px; }
     .diagnosis p { margin: 0; color: #245846; }
+    .explain-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .explain-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fbfcfe;
+    }
+    .explain-card h3 { margin: 0 0 8px; font-size: 16px; }
+    .explain-card p { margin: 0 0 10px; color: var(--muted); }
+    .explain-card ul { margin: 0; padding-left: 18px; }
+    .explain-card li { margin: 7px 0; }
     .score-row {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -340,6 +355,7 @@
       main { padding: 12px; }
       section { overflow: hidden; }
       .grid, .two, .score-row { grid-template-columns: 1fr; }
+      .explain-grid { grid-template-columns: 1fr; }
       .goal-grid { grid-template-columns: 1fr; }
       .view-tabs {
         display: grid;
@@ -379,6 +395,7 @@
       <button class="tab-button" data-tab="sections">구간 확인</button>
       <button class="tab-button" data-tab="result">보정 결과</button>
       <button class="tab-button" data-tab="compare">비교</button>
+      <button class="tab-button" data-tab="explain">해설</button>
     </nav>
 
     <section class="warn active-view" data-view="main">
@@ -561,6 +578,33 @@
         <li><span class="pill">좌우 밸런스</span> 한쪽이 과하게 크면 이어폰이나 스피커에서 중심이 치우쳐 들릴 수 있습니다.</li>
         <li><span class="pill">모노 확인</span> 모노에서 크게 줄어들면 작은 스피커나 일부 재생 환경에서 힘이 빠질 수 있습니다.</li>
       </ul>
+    </section>
+
+    <section data-view="explain">
+      <h2>사운드 해설</h2>
+      <div class="explain-grid">
+        <article class="explain-card">
+          <h3>원본 해설</h3>
+          <p id="originalExplainSummary">파일을 넣고 자동 점검을 누르면 원본 소리를 문장으로 풀어줍니다.</p>
+          <ul id="originalExplainList">
+            <li>아직 원본 분석 전입니다.</li>
+          </ul>
+        </article>
+        <article class="explain-card">
+          <h3>보정본 해설</h3>
+          <p id="processedExplainSummary">보정본을 만들면 보정 후 소리가 어떤 상태인지 보여줍니다.</p>
+          <ul id="processedExplainList">
+            <li>아직 보정본이 없습니다.</li>
+          </ul>
+        </article>
+        <article class="explain-card">
+          <h3>변화 해설</h3>
+          <p id="changeExplainSummary">원본과 보정본을 비교해 무엇이 달라졌는지 설명합니다.</p>
+          <ul id="changeExplainList">
+            <li>보정본을 만든 뒤 비교할 수 있습니다.</li>
+          </ul>
+        </article>
+      </div>
     </section>
   </main>
 
@@ -1221,11 +1265,92 @@
       return "-";
     }
 
+    function renderExplanationList(id, items) {
+      $(id).innerHTML = items.map((item) => `<li>${item}</li>`).join("");
+    }
+
+    function resetOriginalSoundExplanation() {
+      $("originalExplainSummary").textContent = "파일을 넣고 자동 점검을 누르면 원본 소리를 문장으로 풀어줍니다.";
+      renderExplanationList("originalExplainList", ["아직 원본 분석 전입니다."]);
+    }
+
+    function resetProcessedSoundExplanation() {
+      $("processedExplainSummary").textContent = "보정본을 만들면 보정 후 소리가 어떤 상태인지 보여줍니다.";
+      $("changeExplainSummary").textContent = "원본과 보정본을 비교해 무엇이 달라졌는지 설명합니다.";
+      renderExplanationList("processedExplainList", ["아직 보정본이 없습니다."]);
+      renderExplanationList("changeExplainList", ["보정본을 만든 뒤 비교할 수 있습니다."]);
+    }
+
+    function resetSoundExplanations() {
+      resetOriginalSoundExplanation();
+      resetProcessedSoundExplanation();
+    }
+
+    function buildSoundExplanation(analysis, segments, label) {
+      const score = computeSafetyScore(analysis, segments || []);
+      const primaryRisk = getPrimaryRisk(analysis, segments || []);
+      const clip = labelClip(analysis);
+      const dynamic = labelDynamic(analysis);
+      const mud = labelMud(analysis);
+      const sharp = labelSharp(analysis);
+      const tailHarsh = labelTailHarsh(analysis);
+      const dangerSegments = (segments || []).filter((segment) => segment.risk === "위험").length;
+      const cautionSegments = (segments || []).filter((segment) => segment.risk === "주의").length;
+      const summary = `${label} 안전 점수는 ${score}점이고, 먼저 볼 부분은 ${primaryRisk}입니다.`;
+      const items = [
+        `최대 소리는 ${db(analysis.peak)}입니다. ${describePeak(analysis)}`,
+        `평균 소리는 ${db(analysis.rms)}입니다. ${describeRms(analysis)}`,
+        `움직임은 ${analysis.dynamic.toFixed(1)} dB로 ${dynamic} 판정입니다. ${describeDynamic(analysis)}`,
+        `먹먹함은 ${mud}, 날카로움은 ${sharp}입니다. ${describeBand(mud, "mud")} ${describeBand(sharp, "sharp")}`,
+        `고역 꼬리는 ${tailHarsh}입니다. ${describeTailHarshMetric(analysis)}`,
+        `${analysis.balanceText} ${analysis.monoText} ${analysis.phaseText}`,
+        dangerSegments || cautionSegments
+          ? `구간 확인에서는 위험 ${dangerSegments}개, 주의 ${cautionSegments}개가 보입니다. 표시된 구간을 같은 위치에서 다시 들어보세요.`
+          : "구간 확인에서 크게 튀는 구간은 많지 않습니다. 그래도 저장 전에는 가장 큰 부분을 한 번 더 들어보세요."
+      ];
+      return { summary, items };
+    }
+
+    function updateOriginalSoundExplanation(analysis, segments) {
+      const explanation = buildSoundExplanation(analysis, segments, "원본");
+      $("originalExplainSummary").textContent = explanation.summary;
+      renderExplanationList("originalExplainList", explanation.items);
+    }
+
+    function updateProcessedSoundExplanation(analysis, segments) {
+      const explanation = buildSoundExplanation(analysis, segments, "보정본");
+      $("processedExplainSummary").textContent = explanation.summary;
+      renderExplanationList("processedExplainList", explanation.items);
+    }
+
+    function updateChangeSoundExplanation(before, after) {
+      const rmsDelta = dbNumber(after.rms) - dbNumber(before.rms);
+      const peakDelta = dbNumber(after.peak) - dbNumber(before.peak);
+      const items = [
+        describeChange("peak", before, after),
+        `${formatDelta(after.rms, before.rms)}: ${describeChange("rms", before, after)}`,
+        describeChange("dynamic", before, after),
+        `${labelMud(before)}에서 ${labelMud(after)}: ${describeChange("mud", before, after)}`,
+        `${labelSharp(before)}에서 ${labelSharp(after)}: ${describeChange("sharp", before, after)}`,
+        `모노 손실은 원본 ${Math.abs(before.monoLossDb).toFixed(1)} dB, 보정본 ${Math.abs(after.monoLossDb).toFixed(1)} dB입니다. 작은 스피커에서 힘이 빠지는지 확인하세요.`,
+        "결론은 수치가 아니라 같은 구간 A/B 청감입니다. 더 커진 느낌보다 덜 피곤하고 덜 깨지는지를 기준으로 보세요."
+      ];
+      if (Math.abs(rmsDelta) <= 0.8 && peakDelta <= 0) {
+        $("changeExplainSummary").textContent = "체감 음량은 크게 흔들지 않고, 최대 소리 여유를 더 안전하게 만든 비교본입니다.";
+      } else if (Math.abs(rmsDelta) > 1.5) {
+        $("changeExplainSummary").textContent = "보정 전후 체감 음량 차이가 큽니다. 음량 착시를 조심해서 같은 구간으로 비교하세요.";
+      } else {
+        $("changeExplainSummary").textContent = "보정 전후 변화가 있습니다. 편해졌는지, 힘이 빠졌는지, 날카로움이 줄었는지를 따로 확인하세요.";
+      }
+      renderExplanationList("changeExplainList", items);
+    }
+
     function resetComparison() {
       ["beforePeak", "afterPeak", "peakDelta", "beforeRms", "afterRms", "rmsDelta", "beforeDynamic", "afterDynamic", "dynamicDelta", "beforeMud", "afterMud", "mudDelta", "beforeSharp", "afterSharp", "sharpDelta"].forEach((id) => {
         $(id).textContent = "-";
       });
       $("afterSummary").querySelector("p").textContent = "추천 보정을 만들면 원본과 보정본의 수치 차이를 보여줍니다.";
+      resetProcessedSoundExplanation();
     }
 
     function updateComparison(before, after) {
@@ -2190,6 +2315,7 @@
       resetComparison();
       resetSegmentAnalysis();
       resetDecisionPanels();
+      resetSoundExplanations();
       $("processNote").textContent = "추천 보정을 만들 수 있습니다.";
       $("abOriginalBtn").disabled = false;
       setAbSource("original");
@@ -2219,6 +2345,8 @@
       const segments = analyzeSegments(state.originalBuffer);
       updateSegmentAnalysis(segments);
       updateRecommendation(state.analysis, segments);
+      updateOriginalSoundExplanation(state.analysis, segments);
+      resetProcessedSoundExplanation();
       updateQuickWorkflow();
     });
 
@@ -2245,6 +2373,7 @@
           const segments = analyzeSegments(state.originalBuffer);
           updateSegmentAnalysis(segments);
           updateRecommendation(state.analysis, segments);
+          updateOriginalSoundExplanation(state.analysis, segments);
         }
         const result = await processBuffer(state.originalBuffer, state.preset, {
           analysis: state.analysis,
@@ -2267,6 +2396,9 @@
           $("processNote").className = "status";
         }
         updateComparison(state.analysis, processedAnalysis);
+        const processedSegments = analyzeSegments(state.processedBuffer);
+        updateProcessedSoundExplanation(processedAnalysis, processedSegments);
+        updateChangeSoundExplanation(state.analysis, processedAnalysis);
         updateProcessedScore(state.analysis, processedAnalysis, buildProcessLog(state.analysis, processedAnalysis, presetLabel, goalLabel, $("fadeToggle").checked, plan));
         drawWave($("processedWave"), processed);
         const wav = encodeWav(processed);
