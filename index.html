@@ -760,7 +760,7 @@
           <button id="abOriginalBtn" disabled>원본 듣기</button>
           <button id="abProcessedBtn" disabled>보정본 듣기</button>
         </div>
-        <audio id="abAudio" controls preload="auto"></audio>
+        <audio id="abAudio" preload="auto" hidden></audio>
         <p id="playbackClock" class="playback-clock">재생 위치: -</p>
         <p id="abNote" class="status">파일을 넣으면 원본을, 보정본을 만들면 같은 플레이어에서 번갈아 들을 수 있습니다.</p>
       </div>
@@ -1155,8 +1155,48 @@
       return Number.isFinite(buffer?.duration) ? buffer.duration : 0;
     }
 
+    function abAudioFor(kind) {
+      return kind === "processed" ? $("processedAudio") : $("originalAudio");
+    }
+
+    function hasAbSource(kind) {
+      return Boolean(kind === "processed" ? state.processedUrl : state.originalUrl);
+    }
+
+    function isAbEnginePlayer(id) {
+      return id === "originalAudio" || id === "processedAudio";
+    }
+
+    function isAbEnginePlaying() {
+      return ["originalAudio", "processedAudio"].some((id) => {
+        const audio = $(id);
+        return audio && !audio.paused && !audio.ended;
+      });
+    }
+
+    function setAudioCurrentTime(audio, time, kind) {
+      if (!audio || !Number.isFinite(time)) return;
+      const seek = () => {
+        const duration = getAudioDuration(kind, audio);
+        audio.currentTime = Math.min(Math.max(0, time), Math.max(0, duration - 0.05));
+      };
+      if (audio.readyState >= 1) {
+        seek();
+      } else {
+        audio.addEventListener("loadedmetadata", seek, { once: true });
+        audio.load();
+      }
+    }
+
+    function currentAbTime(fallbackKind = "original") {
+      const active = state.activePlayback.kind ? abAudioFor(state.activePlayback.kind) : null;
+      if (active && Number.isFinite(active.currentTime)) return active.currentTime;
+      const fallback = abAudioFor(fallbackKind);
+      return Number.isFinite(fallback?.currentTime) ? fallback.currentTime : 0;
+    }
+
     function getPlaybackInfoFor(kind, playerId = null) {
-      const players = playerId ? [playerId] : ["abAudio", kind === "processed" ? "processedAudio" : "originalAudio"];
+      const players = playerId ? [playerId] : [kind === "processed" ? "processedAudio" : "originalAudio", "abAudio"];
       for (const id of players) {
         const audio = $(id);
         if (!audio) continue;
@@ -1165,14 +1205,15 @@
         if (!Number.isFinite(audio.currentTime)) continue;
         const isActive = state.activePlayback.player === id || (!audio.paused && !audio.ended);
         if (!isActive) continue;
+        const isSegmentPlayback = state.segmentPlayKind === kind && (id === "abAudio" || isAbEnginePlayer(id));
         return {
           audio,
           kind,
           player: id,
           currentTime: clamp(audio.currentTime, 0, getAudioDuration(kind, audio) || audio.currentTime),
           duration: getAudioDuration(kind, audio),
-          startSec: id === "abAudio" ? state.segmentPlayStartSec : null,
-          endSec: id === "abAudio" ? state.segmentPlayEndSec : null
+          startSec: isSegmentPlayback ? state.segmentPlayStartSec : null,
+          endSec: isSegmentPlayback ? state.segmentPlayEndSec : null
         };
       }
       return null;
@@ -1180,8 +1221,8 @@
 
     function getCanvasPlaybackInfo(canvasId) {
       if (canvasId === "riskTimeline") {
-        const kind = state.activePlayback.player === "abAudio" ? state.activePlayback.kind : state.segmentPlayKind;
-        return kind ? getPlaybackInfoFor(kind, "abAudio") : null;
+        const kind = state.segmentPlayKind || state.activePlayback.kind;
+        return kind ? getPlaybackInfoFor(kind) : null;
       }
       if (canvasId === "processedWave") return getPlaybackInfoFor("processed");
       if (canvasId === "originalWave") return getPlaybackInfoFor("original");
@@ -1228,8 +1269,7 @@
       });
       const stopButton = $("segmentStopBtn");
       if (stopButton) {
-        const segmentAudio = $("abAudio");
-        stopButton.disabled = !segmentAudio || segmentAudio.paused || segmentAudio.ended || state.activePlayback.player !== "abAudio";
+        stopButton.disabled = !state.segmentPlayKind || !isAbEnginePlaying();
       }
     }
 
@@ -3151,48 +3191,40 @@
     function setAbSource(kind, targetTime = null, shouldPlay = false) {
       state.segmentStopEndSec = null;
       state.segmentStopLabel = "";
-      const audio = $("abAudio");
-      const wasPlaying = Boolean(audio.src) && !audio.paused && !audio.ended;
       const currentTime = Number.isFinite(targetTime)
         ? Math.max(0, targetTime)
-        : Number.isFinite(audio.currentTime)
-          ? audio.currentTime
-          : 0;
-      const source = kind === "processed" ? state.processedUrl : state.originalUrl;
-      if (!source) return;
+        : currentAbTime(kind);
+      if (!hasAbSource(kind)) return;
 
-      const sameSource = audio.src === source;
-      const shouldResume = shouldPlay || wasPlaying;
-      let didSeek = false;
-      const seekAndMaybePlay = () => {
-        if (didSeek) return;
-        didSeek = true;
-        if (Number.isFinite(audio.duration)) {
-          audio.currentTime = Math.min(currentTime, Math.max(0, audio.duration - 0.1));
+      const activeAudio = abAudioFor(kind);
+      const otherKind = kind === "processed" ? "original" : "processed";
+      const otherAudio = abAudioFor(otherKind);
+      const shouldResume = shouldPlay || isAbEnginePlaying();
+
+      setAudioCurrentTime(activeAudio, currentTime, kind);
+      if (hasAbSource(otherKind)) setAudioCurrentTime(otherAudio, currentTime, otherKind);
+
+      activeAudio.muted = false;
+      activeAudio.volume = 1;
+      if (hasAbSource(otherKind)) {
+        otherAudio.muted = true;
+        otherAudio.volume = 1;
+      }
+
+      if (shouldResume) {
+        if (hasAbSource(otherKind) && otherAudio.paused) {
+          otherAudio.play().catch(() => {});
         }
-        if (shouldResume) {
-          audio.play().catch(() => {
-            $("abNote").textContent = "재생 버튼을 한 번 더 누르면 해당 구간부터 들을 수 있습니다.";
-          });
-        }
-      };
-      audio.onloadedmetadata = null;
-      if (!sameSource) {
-        audio.addEventListener("loadedmetadata", seekAndMaybePlay, { once: true });
-        audio.src = source;
-        audio.load();
-      } else if (audio.readyState >= 1) {
-        seekAndMaybePlay();
-      } else {
-        audio.addEventListener("loadedmetadata", seekAndMaybePlay, { once: true });
-        audio.load();
+        activeAudio.play().catch(() => {
+          $("abNote").textContent = "재생 버튼을 한 번 더 누르면 해당 구간부터 들을 수 있습니다.";
+        });
       }
       $("abOriginalBtn").classList.toggle("primary", kind === "original");
       $("abProcessedBtn").classList.toggle("primary", kind === "processed");
       state.segmentPlayKind = kind;
       state.segmentPlayStartSec = null;
       state.segmentPlayEndSec = null;
-      state.activePlayback = { player: "abAudio", kind };
+      state.activePlayback = { player: kind === "processed" ? "processedAudio" : "originalAudio", kind };
       redrawPlaybackCanvases();
       updateSegmentSourceDisplay(kind, null, null);
       $("segmentPlayNote").textContent = "구간 듣기를 누르면 선택한 구간만 확인할 수 있습니다.";
@@ -3212,7 +3244,7 @@
       state.segmentPlayKind = kind;
       state.segmentPlayStartSec = startSec;
       state.segmentPlayEndSec = endSec;
-      state.activePlayback = { player: "abAudio", kind };
+      state.activePlayback = { player: kind === "processed" ? "processedAudio" : "originalAudio", kind };
       redrawPlaybackCanvases();
       const target = getDetailToggleTargetSegment();
       if (target && Math.abs(target.startSec - startSec) < 0.03 && Math.abs(target.endSec - endSec) < 0.03) {
@@ -3230,11 +3262,18 @@
     function resetAbPlayer() {
       state.segmentStopEndSec = null;
       state.segmentStopLabel = "";
+      ["abAudio", "originalAudio", "processedAudio"].forEach((id) => {
+        const audio = $(id);
+        if (!audio) return;
+        audio.pause();
+        audio.muted = false;
+      });
       $("abAudio").removeAttribute("src");
       $("abOriginalBtn").disabled = true;
       $("abProcessedBtn").disabled = true;
       $("abOriginalBtn").classList.remove("primary");
       $("abProcessedBtn").classList.remove("primary");
+      state.activePlayback = { player: null, kind: null };
       state.segmentPlayKind = null;
       state.segmentPlayStartSec = null;
       state.segmentPlayEndSec = null;
@@ -3545,6 +3584,11 @@
     });
 
     function pauseOtherPlayers(activeId) {
+      if (isAbEnginePlayer(activeId)) {
+        const legacy = $("abAudio");
+        if (legacy && !legacy.paused) legacy.pause();
+        return;
+      }
       ["abAudio", "originalAudio", "processedAudio"].forEach((id) => {
         if (id === activeId) return;
         const audio = $(id);
@@ -3556,21 +3600,28 @@
       const audio = $(id);
       audio.addEventListener("play", () => {
         pauseOtherPlayers(id);
+        if (audio.muted && isAbEnginePlayer(id) && state.activePlayback.kind) {
+          startPlaybackLoop();
+          return;
+        }
         markActivePlayback(id, kindResolver());
       });
       ["timeupdate", "seeked", "pause", "ended", "loadedmetadata"].forEach((eventName) => {
         audio.addEventListener(eventName, () => {
           const kind = kindResolver();
-          if (kind) state.activePlayback = { player: id, kind };
+          if (kind && (!audio.muted || state.activePlayback.player === id)) {
+            state.activePlayback = { player: id, kind };
+          }
           redrawPlaybackCanvases();
         });
       });
     }
 
     function stopSegmentPlayback() {
-      const audio = $("abAudio");
-      if (!audio) return;
-      audio.pause();
+      ["originalAudio", "processedAudio", "abAudio"].forEach((id) => {
+        const audio = $(id);
+        if (audio) audio.pause();
+      });
       state.segmentStopEndSec = null;
       state.segmentStopLabel = "";
       $("segmentPlayNote").textContent = "재생을 멈췄습니다. 다른 구간을 누르면 그 구간부터 다시 들을 수 있습니다.";
@@ -3610,22 +3661,34 @@
       }
     });
 
-    $("abAudio").addEventListener("timeupdate", () => {
-      const audio = $("abAudio");
+    function handleSegmentAutoStop() {
+      const audio = state.segmentPlayKind ? abAudioFor(state.segmentPlayKind) : null;
+      if (!audio) return;
       if (!Number.isFinite(state.segmentStopEndSec)) return;
       if (!$("segmentAutoStopToggle").checked) return;
       if (audio.currentTime < state.segmentStopEndSec - 0.04) return;
-      audio.pause();
-      audio.currentTime = Math.max(0, state.segmentStopEndSec);
+      ["originalAudio", "processedAudio", "abAudio"].forEach((id) => {
+        const item = $(id);
+        if (!item) return;
+        item.pause();
+        if (isAbEnginePlayer(id) && Number.isFinite(item.duration)) {
+          item.currentTime = Math.min(Math.max(0, state.segmentStopEndSec), Math.max(0, item.duration - 0.05));
+        }
+      });
       $("segmentPlayNote").textContent = `${state.segmentStopLabel} 구간 끝에서 멈췄습니다.`;
       $("abNote").textContent = `${state.segmentStopLabel} 구간 끝에서 멈췄습니다. 다른 구간을 누르면 그 구간만 다시 들을 수 있습니다.`;
       updateSegmentSourceDisplay(state.segmentPlayKind, state.segmentPlayStartSec, state.segmentPlayEndSec, `${state.segmentStopLabel} 구간 끝에서 멈췄습니다.`);
       state.segmentStopEndSec = null;
       state.segmentStopLabel = "";
-    });
+      redrawPlaybackCanvases();
+    }
 
-    $("abOriginalBtn").addEventListener("click", () => setAbSource("original"));
-    $("abProcessedBtn").addEventListener("click", () => setAbSource("processed"));
+    $("abAudio").addEventListener("timeupdate", handleSegmentAutoStop);
+    $("originalAudio").addEventListener("timeupdate", handleSegmentAutoStop);
+    $("processedAudio").addEventListener("timeupdate", handleSegmentAutoStop);
+
+    $("abOriginalBtn").addEventListener("click", () => setAbSource("original", null, true));
+    $("abProcessedBtn").addEventListener("click", () => setAbSource("processed", null, true));
   </script>
 </body>
 </html>
