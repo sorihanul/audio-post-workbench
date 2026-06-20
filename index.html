@@ -210,6 +210,31 @@
       color: #245846;
       font-weight: 700;
     }
+    .workflow-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      border: 1px solid #b9ddcf;
+      border-radius: 8px;
+      padding: 14px;
+      margin: 12px 0;
+      background: var(--accent-soft);
+    }
+    .workflow-panel > div { min-width: 0; }
+    .workflow-panel strong { display: block; margin-bottom: 4px; }
+    .workflow-panel p {
+      margin: 0;
+      color: #245846;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .workflow-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
     .preset { display: flex; flex-wrap: wrap; gap: 8px; }
     .preset button.active { background: var(--accent-soft); border-color: #9bcbb9; color: var(--accent); }
     .goal-box {
@@ -295,8 +320,23 @@
     }
     @media (max-width: 760px) {
       main { padding: 12px; }
+      section { overflow: hidden; }
       .grid, .two, .score-row { grid-template-columns: 1fr; }
       .goal-grid { grid-template-columns: 1fr; }
+      .workflow-panel { grid-template-columns: 1fr; }
+      .workflow-actions { justify-content: stretch; }
+      .workflow-actions button { width: 100%; }
+      .compare-table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
+      }
+      .compare-table thead,
+      .compare-table tbody {
+        display: table;
+        width: 720px;
+        max-width: none;
+      }
       .compare-table th, .compare-table td { padding: 9px 8px; font-size: 13px; }
       header { padding: 22px 16px 14px; }
     }
@@ -358,6 +398,17 @@
       <div id="segmentSummary" class="diagnosis">
         <strong>다시 들어볼 구간</strong>
         <p>자동 점검을 누르면 구간별로 튀는 부분, 무음, 주의 구간을 표시합니다.</p>
+      </div>
+      <div class="workflow-panel">
+        <div>
+          <strong>다음 할 일</strong>
+          <p id="quickStatus">파일을 넣고 자동 점검을 누르면 여기서 바로 처리할 수 있습니다.</p>
+        </div>
+        <div class="workflow-actions">
+          <button id="quickSelectBtn" disabled>의심 구간 자동 선택</button>
+          <button id="quickProcessBtn" class="primary" disabled>보정 만들기</button>
+          <button id="quickSaveBtn" disabled>저장</button>
+        </div>
       </div>
       <canvas id="riskTimeline" class="timeline" width="900" height="90"></canvas>
       <div class="legend">
@@ -1164,6 +1215,7 @@
       $("segmentSummary").querySelector("p").textContent = "자동 점검을 누르면 구간별로 튀는 부분, 무음, 주의 구간을 표시합니다.";
       $("segmentRows").innerHTML = '<tr><td colspan="7">아직 구간 분석 전입니다.</td></tr>';
       drawRiskTimeline($("riskTimeline"), []);
+      updateQuickWorkflow();
     }
 
     function riskColor(risk) {
@@ -1253,10 +1305,64 @@
       } else {
         $("segmentSummary").querySelector("p").textContent = "구간별로 크게 튀는 부분은 보이지 않습니다. 원본과 보정본을 같은 음량으로 비교하세요.";
       }
+      updateQuickWorkflow();
     }
 
     function getSegmentEdit(index) {
       return state.segmentEdits.find((edit) => edit.index === index) || null;
+    }
+
+    function getPrioritySegment() {
+      if (!state.segments.length) return null;
+      return state.segments.find((segment) => segment.risk === "위험")
+        || state.segments.find((segment) => tailHarshRank(segment.tailHarshLabel) >= tailHarshRank("세부 확인"))
+        || state.segments.find((segment) => segment.risk === "주의")
+        || state.segments.find((segment) => segment.phaseLabel === "위험" || segment.phaseLabel === "확인")
+        || null;
+    }
+
+    function getSuggestedEditType(segment) {
+      if (!segment) return "soften";
+      if (tailHarshRank(segment.tailHarshLabel) >= tailHarshRank("세부 확인")) return "tail";
+      if (segment.risk === "위험") return "lower";
+      return "soften";
+    }
+
+    function updateQuickWorkflow(message = "") {
+      const hasFile = Boolean(state.originalBuffer);
+      const hasAnalysis = Boolean(state.analysis && state.segments.length);
+      const priority = getPrioritySegment();
+      const hasEdits = state.segmentEdits.length > 0;
+      const hasProcessed = Boolean(state.processedBuffer);
+
+      $("quickSelectBtn").disabled = !hasAnalysis || !priority;
+      $("quickProcessBtn").disabled = !hasFile;
+      $("quickSaveBtn").disabled = !hasProcessed;
+
+      if (message) {
+        $("quickStatus").textContent = message;
+      } else if (!hasFile) {
+        $("quickStatus").textContent = "파일을 넣고 자동 점검을 누르면 여기서 바로 처리할 수 있습니다.";
+      } else if (!hasAnalysis) {
+        $("quickStatus").textContent = "자동 점검을 누르면 의심 구간을 한 번에 고를 수 있습니다.";
+      } else if (priority && !hasEdits) {
+        $("quickStatus").textContent = `${formatTime(priority.startSec)}-${formatTime(priority.endSec)} 구간이 먼저 볼 후보입니다. 의심 구간 자동 선택을 누르세요.`;
+      } else if (hasEdits && !hasProcessed) {
+        $("quickStatus").textContent = `구간 보정 ${hasEdits}개가 선택됐습니다. 이 화면에서 바로 보정 만들기를 누르세요.`;
+      } else if (hasProcessed) {
+        $("quickStatus").textContent = "보정본이 준비됐습니다. 비교해서 괜찮으면 바로 저장할 수 있습니다.";
+      } else {
+        $("quickStatus").textContent = "큰 위험은 낮습니다. 필요하면 보정 만들기를 눌러 비교본만 만들어보세요.";
+      }
+    }
+
+    function selectPrioritySegment() {
+      const segment = getPrioritySegment();
+      if (!segment) {
+        updateQuickWorkflow("자동으로 고를 뚜렷한 의심 구간은 없습니다. 필요하면 보정 만들기만 비교하세요.");
+        return;
+      }
+      setSegmentEdit(segment.index, getSuggestedEditType(segment));
     }
 
     function clearProcessedAfterEdit(message) {
@@ -1273,6 +1379,7 @@
       $("processedMainRisk").textContent = "-";
       $("processLog").innerHTML = `<li>${message}</li>`;
       $("processNote").textContent = message;
+      updateQuickWorkflow(message);
     }
 
     function setSegmentEdit(index, type) {
@@ -1430,6 +1537,7 @@
         $("processedMainRisk").textContent = "-";
         $("processLog").innerHTML = "<li>프리셋을 바꿨습니다. 추천 보정을 다시 만들어야 합니다.</li>";
         $("processNote").textContent = "프리셋을 바꿨습니다. 추천 보정을 다시 만드세요.";
+        updateQuickWorkflow("프리셋을 바꿨습니다. 보정 만들기를 다시 누르세요.");
       }
     }
 
@@ -1454,6 +1562,7 @@
         $("processedMainRisk").textContent = "-";
         $("processLog").innerHTML = "<li>소리 개선 목표를 바꿨습니다. 추천 보정을 다시 만들어야 합니다.</li>";
         $("processNote").textContent = "소리 개선 목표를 바꿨습니다. 추천 보정을 다시 만드세요.";
+        updateQuickWorkflow("소리 개선 목표를 바꿨습니다. 보정 만들기를 다시 누르세요.");
       }
     }
 
@@ -2037,6 +2146,7 @@
       $("processNote").textContent = "추천 보정을 만들 수 있습니다.";
       $("abOriginalBtn").disabled = false;
       setAbSource("original");
+      updateQuickWorkflow("파일을 불러왔습니다. 자동 점검을 누르세요.");
     }
 
     $("fileInput").addEventListener("change", async (event) => {
@@ -2058,6 +2168,7 @@
       const segments = analyzeSegments(state.originalBuffer);
       updateSegmentAnalysis(segments);
       updateRecommendation(state.analysis, segments);
+      updateQuickWorkflow();
     });
 
     document.querySelectorAll("[data-preset]").forEach((button) => {
@@ -2115,8 +2226,10 @@
         $("saveBtn").disabled = false;
         $("abProcessedBtn").disabled = false;
         if (state.segments.length) updateSegmentAnalysis(state.segments);
+        updateQuickWorkflow("보정본이 준비됐습니다. 비교해서 괜찮으면 바로 저장할 수 있습니다.");
       } catch (error) {
         $("processNote").textContent = "보정본 생성에 실패했습니다.";
+        updateQuickWorkflow("보정본 생성에 실패했습니다. 파일을 다시 확인하세요.");
         console.error(error);
       } finally {
         $("processBtn").disabled = false;
@@ -2137,8 +2250,13 @@
       link.click();
       link.remove();
       $("processNote").textContent = `저장을 요청했습니다: ${state.processedFileName}`;
+      updateQuickWorkflow(`저장을 요청했습니다: ${state.processedFileName}`);
       window.setTimeout(() => URL.revokeObjectURL(url), 60000);
     });
+
+    $("quickSelectBtn").addEventListener("click", selectPrioritySegment);
+    $("quickProcessBtn").addEventListener("click", () => $("processBtn").click());
+    $("quickSaveBtn").addEventListener("click", () => $("saveBtn").click());
 
     $("segmentRows").addEventListener("click", (event) => {
       const editButton = event.target.closest("[data-segment-edit]");
