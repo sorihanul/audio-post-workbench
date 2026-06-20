@@ -42,6 +42,10 @@ No server, Python, Node.js, account, API key, or internet connection is required
 - Checks small-speaker risk from stereo/phase behavior
 - Marks sections that should be listened to again
 - Marks sections that may lose power on small speakers
+- Lets you apply safe section-only fixes:
+  - lower only this section
+  - soften only this section
+  - reset this section
 - Applies conservative correction presets
 - Offers beginner-friendly goals:
   - Auto

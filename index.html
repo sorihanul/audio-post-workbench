@@ -199,6 +199,17 @@
       padding: 5px 9px;
       font-size: 13px;
     }
+    .mini-actions button.active {
+      background: var(--accent-soft);
+      border-color: #9bcbb9;
+      color: var(--accent);
+    }
+    .segment-edit-note {
+      display: block;
+      margin-top: 7px;
+      color: #245846;
+      font-weight: 700;
+    }
     .preset { display: flex; flex-wrap: wrap; gap: 8px; }
     .preset button.active { background: var(--accent-soft); border-color: #9bcbb9; color: var(--accent); }
     .goal-box {
@@ -478,6 +489,7 @@
       goal: "auto",
       analysis: null,
       segments: [],
+      segmentEdits: [],
       originalScore: null
     };
 
@@ -949,6 +961,7 @@
 
     function resetSegmentAnalysis() {
       state.segments = [];
+      state.segmentEdits = [];
       $("segmentSummary").querySelector("p").textContent = "자동 점검을 누르면 구간별로 튀는 부분, 무음, 주의 구간을 표시합니다.";
       $("segmentRows").innerHTML = '<tr><td colspan="6">아직 구간 분석 전입니다.</td></tr>';
       drawRiskTimeline($("riskTimeline"), []);
@@ -997,6 +1010,10 @@
       state.segments = segments;
       drawRiskTimeline($("riskTimeline"), segments);
       $("segmentRows").innerHTML = segments.map((segment) => (
+        (() => {
+          const edit = getSegmentEdit(segment.index);
+          const editText = edit ? `<small class="segment-edit-note">선택됨: ${edit.label}</small>` : "";
+          return (
         `<tr>
           <td>${formatTime(segment.startSec)}-${formatTime(segment.endSec)}</td>
           <td>${db(segment.peak)}</td>
@@ -1005,12 +1022,18 @@
           <td>${segment.phaseLabel}</td>
           <td>
             ${segment.note}<br><small>${segment.phaseNote}</small>
+            ${editText}
             <div class="mini-actions">
               <button data-segment-play="original" data-start="${segment.startSec}" data-end="${segment.endSec}">원본 듣기</button>
               <button data-segment-play="processed" data-start="${segment.startSec}" data-end="${segment.endSec}" ${state.processedBuffer ? "" : "disabled"}>보정본 듣기</button>
+              <button data-segment-edit="lower" data-index="${segment.index}" class="${edit?.type === "lower" ? "active" : ""}">이 구간만 낮추기</button>
+              <button data-segment-edit="soften" data-index="${segment.index}" class="${edit?.type === "soften" ? "active" : ""}">이 구간만 부드럽게</button>
+              <button data-segment-edit="clear" data-index="${segment.index}" ${edit ? "" : "disabled"}>원래대로</button>
             </div>
           </td>
         </tr>`
+          );
+        })()
       )).join("");
 
       const firstDanger = segments.find((segment) => segment.risk === "위험");
@@ -1023,6 +1046,48 @@
       } else {
         $("segmentSummary").querySelector("p").textContent = "구간별로 크게 튀는 부분은 보이지 않습니다. 원본과 보정본을 같은 음량으로 비교하세요.";
       }
+    }
+
+    function getSegmentEdit(index) {
+      return state.segmentEdits.find((edit) => edit.index === index) || null;
+    }
+
+    function clearProcessedAfterEdit(message) {
+      if (state.processedUrl) URL.revokeObjectURL(state.processedUrl);
+      state.processedUrl = null;
+      state.processedBuffer = null;
+      $("processedAudio").removeAttribute("src");
+      $("saveBtn").disabled = true;
+      $("abProcessedBtn").disabled = true;
+      drawWave($("processedWave"), null);
+      resetComparison();
+      $("processedScore").textContent = "-";
+      $("scoreDelta").textContent = "-";
+      $("processedMainRisk").textContent = "-";
+      $("processLog").innerHTML = `<li>${message}</li>`;
+      $("processNote").textContent = message;
+    }
+
+    function setSegmentEdit(index, type) {
+      const segment = state.segments[index];
+      if (!segment) return;
+      state.segmentEdits = state.segmentEdits.filter((edit) => edit.index !== index);
+      if (type !== "clear") {
+        state.segmentEdits.push({
+          index,
+          type,
+          startSec: segment.startSec,
+          endSec: segment.endSec,
+          label: type === "lower" ? "이 구간만 낮추기" : "이 구간만 부드럽게",
+          gainDb: type === "lower" ? -2 : -0.8,
+          softenMix: type === "soften" ? 0.34 : 0
+        });
+      }
+      updateSegmentAnalysis(state.segments);
+      const message = type === "clear"
+        ? `${formatTime(segment.startSec)}-${formatTime(segment.endSec)} 구간 보정을 원래대로 돌렸습니다.`
+        : `${formatTime(segment.startSec)}-${formatTime(segment.endSec)} 구간에 '${type === "lower" ? "살짝 낮추기" : "부드럽게"}'를 선택했습니다. 추천 보정을 다시 만들면 적용됩니다.`;
+      clearProcessedAfterEdit(message);
     }
 
     function getPrimaryRisk(analysis, segments = []) {
@@ -1418,6 +1483,58 @@
       return buffer;
     }
 
+    function dbToGain(value) {
+      return Math.pow(10, value / 20);
+    }
+
+    function segmentEnvelope(position, start, end, fadeSamples) {
+      if (fadeSamples <= 0) return 1;
+      const fadeIn = clamp((position - start) / fadeSamples, 0, 1);
+      const fadeOut = clamp((end - position) / fadeSamples, 0, 1);
+      return Math.min(fadeIn, fadeOut, 1);
+    }
+
+    function applySegmentEdits(buffer, edits = [], plan = null) {
+      if (!edits.length) return buffer;
+      const fadeSamples = Math.max(64, Math.floor(buffer.sampleRate * 0.035));
+
+      edits.forEach((edit) => {
+        const start = clamp(Math.floor(edit.startSec * buffer.sampleRate), 0, buffer.length - 1);
+        const end = clamp(Math.floor(edit.endSec * buffer.sampleRate), start + 1, buffer.length);
+        const gain = dbToGain(edit.gainDb || 0);
+        const mix = edit.type === "soften" ? clamp(edit.softenMix || 0.28, 0, 0.45) : 0;
+
+        for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+          const data = buffer.getChannelData(channel);
+          const original = mix > 0 ? data.slice(start, end) : null;
+          for (let i = start; i < end; i++) {
+            const envelope = segmentEnvelope(i, start, end, fadeSamples);
+            const local = i - start;
+            let value = data[i];
+            if (original) {
+              const prev = original[Math.max(0, local - 1)];
+              const current = original[local];
+              const next = original[Math.min(original.length - 1, local + 1)];
+              const softened = (prev + current * 2 + next) / 4;
+              value = current * (1 - mix * envelope) + softened * mix * envelope;
+            }
+            const target = value * gain;
+            data[i] = clamp(data[i] * (1 - envelope) + target * envelope, -0.98, 0.98);
+          }
+        }
+
+        if (plan) {
+          const range = `${formatTime(edit.startSec)}-${formatTime(edit.endSec)}`;
+          const log = edit.type === "lower"
+            ? `${range} 구간만 약 ${Math.abs(edit.gainDb).toFixed(1)} dB 낮췄습니다.`
+            : `${range} 구간만 튀는 느낌을 부드럽게 줄였습니다.`;
+          logsPush(plan, log);
+        }
+      });
+
+      return buffer;
+    }
+
     function matchConservativeLevel(original, processed, preset) {
       const before = computeBasic(original);
       const after = computeBasic(processed);
@@ -1500,6 +1617,7 @@
       source.start();
       const rendered = await offline.startRendering();
       adjustStereoWidth(rendered, plan.width);
+      applySegmentEdits(rendered, options.segmentEdits || [], plan);
       const leveled = matchConservativeLevel(buffer, rendered, preset);
       return {
         buffer: options.applyFade ? applyFades(leveled) : leveled,
@@ -1714,6 +1832,7 @@
         const result = await processBuffer(state.originalBuffer, state.preset, {
           analysis: state.analysis,
           goal: state.goal,
+          segmentEdits: state.segmentEdits,
           applyFade: $("fadeToggle").checked
         });
         const processed = result.buffer;
@@ -1726,7 +1845,8 @@
           $("processNote").textContent = "보정본이 너무 큽니다. 약하게로 다시 시도하세요.";
           $("processNote").className = "status bad";
         } else {
-          $("processNote").textContent = `보정본 완료: ${goalLabel} 목표, 최대 소리 ${db(processedAnalysis.peak)}. 원본과 같은 구간으로 비교하세요.`;
+          const segmentEditText = state.segmentEdits.length ? `, 구간 보정 ${state.segmentEdits.length}개` : "";
+          $("processNote").textContent = `보정본 완료: ${goalLabel} 목표${segmentEditText}, 최대 소리 ${db(processedAnalysis.peak)}. 원본과 같은 구간으로 비교하세요.`;
           $("processNote").className = "status";
         }
         updateComparison(state.analysis, processedAnalysis);
@@ -1735,7 +1855,7 @@
         const wav = encodeWav(processed);
         if (state.processedUrl) URL.revokeObjectURL(state.processedUrl);
         state.processedUrl = URL.createObjectURL(wav);
-        state.processedFileName = `${state.fileName}_post_${state.preset}_${plan.goalName}.wav`;
+        state.processedFileName = `${state.fileName}_post_${state.preset}_${plan.goalName}${state.segmentEdits.length ? "_segments" : ""}.wav`;
         $("processedAudio").src = state.processedUrl;
         $("saveBtn").disabled = false;
         $("abProcessedBtn").disabled = false;
@@ -1766,9 +1886,14 @@
     });
 
     $("segmentRows").addEventListener("click", (event) => {
-      const button = event.target.closest("[data-segment-play]");
-      if (!button) return;
-      playSegment(button.dataset.segmentPlay, Number(button.dataset.start), Number(button.dataset.end));
+      const editButton = event.target.closest("[data-segment-edit]");
+      if (editButton) {
+        setSegmentEdit(Number(editButton.dataset.index), editButton.dataset.segmentEdit);
+        return;
+      }
+      const playButton = event.target.closest("[data-segment-play]");
+      if (!playButton) return;
+      playSegment(playButton.dataset.segmentPlay, Number(playButton.dataset.start), Number(playButton.dataset.end));
     });
 
     $("abOriginalBtn").addEventListener("click", () => setAbSource("original"));
