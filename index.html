@@ -273,6 +273,26 @@
     .segment-badge.warning { background: #fff3cf; color: #7a5200; }
     .segment-badge.danger { background: #ffe4e2; color: #8f1f1f; }
     .segment-badge.silence { background: #e3edff; color: #2d4f8f; }
+    .segment-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .segment-strip button {
+      min-height: 34px;
+      padding: 5px 10px;
+      font-size: 13px;
+      background: #fbfcfe;
+    }
+    .segment-strip button.selected {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .segment-strip button.warning { border-color: #f0d28c; }
+    .segment-strip button.danger { border-color: #f3b6b5; }
+    .segment-strip button.silence { border-color: #cfe0ff; }
     .workflow-panel {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
@@ -527,6 +547,11 @@
         <strong>선택한 구간</strong>
         <div id="selectedSegmentDetail"><p>자동 점검 후 파형을 누르면 그 구간만 들을 수 있습니다.</p></div>
       </div>
+      <h3>전체 구간</h3>
+      <div id="segmentStrip" class="segment-strip">
+        <button disabled>자동 점검 후 전체 구간이 표시됩니다.</button>
+      </div>
+      <h3>먼저 볼 구간</h3>
       <div id="segmentCards" class="segment-cards">
         <article class="segment-card">
           <h3>아직 구간 확인 전입니다.</h3>
@@ -1551,6 +1576,7 @@
       state.selectedSegmentIndex = null;
       $("segmentSummary").querySelector("p").textContent = "자동 점검을 누르면 구간별로 튀는 부분, 무음, 주의 구간을 표시합니다.";
       $("selectedSegmentDetail").innerHTML = "<p>자동 점검 후 파형을 누르면 그 구간만 들을 수 있습니다.</p>";
+      $("segmentStrip").innerHTML = '<button disabled>자동 점검 후 전체 구간이 표시됩니다.</button>';
       $("segmentCards").innerHTML = '<article class="segment-card"><h3>아직 구간 확인 전입니다.</h3><p>파일을 넣고 자동 점검을 누르면 파형 위에 다시 들어볼 구간이 표시됩니다.</p></article>';
       $("segmentPlayNote").textContent = "구간 듣기를 누르면 선택한 구간만 확인할 수 있습니다.";
       drawRiskTimeline($("riskTimeline"), []);
@@ -1619,6 +1645,18 @@
       `;
     }
 
+    function renderSegmentStrip(segments) {
+      $("segmentStrip").innerHTML = segments.map((segment) => `
+        <button
+          class="${riskClass(segment.risk)} ${state.selectedSegmentIndex === segment.index ? "selected" : ""}"
+          data-segment-strip="${segment.index}"
+          title="${formatTime(segment.startSec)}-${formatTime(segment.endSec)} ${riskPlainLabel(segment)}"
+        >
+          ${segment.index + 1}. ${formatTime(segment.startSec)}
+        </button>
+      `).join("");
+    }
+
     function updateSelectedSegment(segment) {
       if (!segment) {
         $("selectedSegmentDetail").innerHTML = "<p>파형에서 확인할 구간을 누르세요.</p>";
@@ -1637,6 +1675,9 @@
     function markSelectedSegmentCard() {
       document.querySelectorAll("[data-segment-card]").forEach((card) => {
         card.classList.toggle("selected", Number(card.dataset.segmentCard) === state.selectedSegmentIndex);
+      });
+      document.querySelectorAll("[data-segment-strip]").forEach((button) => {
+        button.classList.toggle("selected", Number(button.dataset.segmentStrip) === state.selectedSegmentIndex);
       });
     }
 
@@ -1723,6 +1764,7 @@
         state.selectedSegmentIndex = null;
       }
       drawRiskTimeline($("riskTimeline"), segments);
+      renderSegmentStrip(segments);
       const cards = prioritySegments(segments);
       $("segmentCards").innerHTML = cards.map((segment) => {
         const edit = getSegmentEdit(segment.index);
@@ -2746,6 +2788,12 @@
       const card = event.target.closest("[data-segment-card]");
       if (!card) return;
       selectSegmentByIndex(Number(card.dataset.segmentCard));
+    });
+
+    $("segmentStrip").addEventListener("click", (event) => {
+      const button = event.target.closest("[data-segment-strip]");
+      if (!button) return;
+      selectSegmentByIndex(Number(button.dataset.segmentStrip), true);
     });
 
     $("selectedSegmentBox").addEventListener("click", (event) => {
