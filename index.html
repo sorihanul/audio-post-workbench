@@ -598,6 +598,50 @@
       background: #fbfcfe;
     }
     .ab-panel audio { margin-top: 10px; }
+    .ab-tools {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px solid #d6e1dc;
+      border-radius: 8px;
+      background: #fbfdfc;
+    }
+    .ab-tools .option {
+      margin: 0;
+      min-height: 36px;
+      padding: 6px 10px;
+    }
+    .ab-repeat {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .ab-repeat span {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .ab-repeat button {
+      min-height: 34px;
+      padding: 5px 10px;
+      font-size: 13px;
+    }
+    .ab-repeat button.active {
+      background: var(--accent-soft);
+      border-color: #9bcbb9;
+      color: var(--accent);
+    }
+    .ab-status {
+      margin: 8px 0 0;
+      color: #245846;
+      font-size: 13px;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
     .note { background: var(--accent-soft); border-color: #b9ddcf; }
     .warn { background: var(--warn-soft); border-color: #f0d28c; color: var(--warn); }
     .bad { color: var(--bad); }
@@ -982,7 +1026,18 @@
         <audio id="abAudio" preload="auto" hidden></audio>
         <canvas id="abWave" class="ab-wave" width="900" height="180"></canvas>
         <p class="timeline-hint">파형을 누르면 원본과 보정본이 같은 위치로 이동합니다. 보정본이 있으면 위쪽은 원본, 아래쪽은 보정본입니다.</p>
+        <div class="ab-tools">
+          <label class="option"><input id="abVolumeMatchToggle" type="checkbox" checked> 비교 음량 맞춤</label>
+          <div class="ab-repeat" aria-label="반복 듣기">
+            <span>짧은 반복</span>
+            <button data-ab-repeat="0" class="active">끔</button>
+            <button data-ab-repeat="3">3초</button>
+            <button data-ab-repeat="5">5초</button>
+            <button data-ab-repeat="10">10초</button>
+          </div>
+        </div>
         <p id="playbackClock" class="playback-clock">재생 위치: -</p>
+        <p id="abCompareStatus" class="ab-status">비교 음량 맞춤: 켜짐 · 반복: 꺼짐</p>
         <p id="abNote" class="status">파일을 넣으면 원본을, 보정본을 만들면 같은 플레이어에서 번갈아 들을 수 있습니다.</p>
       </div>
       <div class="two">
@@ -1064,7 +1119,12 @@
       detailToggleNextKind: "original",
       activePlayback: { player: null, kind: null },
       playbackFrame: null,
-      originalScore: null
+      originalScore: null,
+      processedAnalysis: null,
+      abVolumeMatch: true,
+      abRepeatSec: 0,
+      abRepeatStartSec: null,
+      abRepeatEndSec: null
     };
 
     const presets = {
@@ -1395,6 +1455,94 @@
       });
     }
 
+    function getAnalysisForKind(kind) {
+      if (kind === "processed") {
+        if (state.processedAnalysis) return state.processedAnalysis;
+        if (state.processedBuffer) return computeBasic(getMixedSamples(state.processedBuffer));
+        return null;
+      }
+      if (state.analysis) return state.analysis;
+      if (state.originalBuffer) return computeBasic(getMixedSamples(state.originalBuffer));
+      return null;
+    }
+
+    function abMatchedGain(kind) {
+      if (!state.abVolumeMatch || !state.originalBuffer || !state.processedBuffer) return 1;
+      const original = getAnalysisForKind("original");
+      const processed = getAnalysisForKind("processed");
+      if (!original?.rms || !processed?.rms) return 1;
+      const target = Math.min(original.rms, processed.rms);
+      const source = kind === "processed" ? processed.rms : original.rms;
+      return clamp(target / Math.max(source, 0.000001), 0.25, 1);
+    }
+
+    function abGainDb(kind) {
+      return 20 * Math.log10(Math.max(abMatchedGain(kind), 0.000001));
+    }
+
+    function applyAbPlaybackVolumes(activeKind = state.activePlayback.kind || "original") {
+      const originalAudio = $("originalAudio");
+      const processedAudio = $("processedAudio");
+      originalAudio.volume = abMatchedGain("original");
+      processedAudio.volume = abMatchedGain("processed");
+      originalAudio.muted = activeKind !== "original";
+      if (hasAbSource("processed")) {
+        processedAudio.muted = activeKind !== "processed";
+      } else {
+        processedAudio.muted = false;
+      }
+    }
+
+    function abVolumeMatchText() {
+      if (!state.abVolumeMatch) return "비교 음량 맞춤: 꺼짐";
+      if (!state.processedBuffer) return "비교 음량 맞춤: 켜짐";
+      const originalDb = abGainDb("original");
+      const processedDb = abGainDb("processed");
+      if (Math.abs(originalDb) < 0.05 && Math.abs(processedDb) < 0.05) return "비교 음량 맞춤: 켜짐, 원본/보정본 차이 작음";
+      const target = originalDb < processedDb ? "원본" : "보정본";
+      const amount = Math.min(originalDb, processedDb);
+      return `비교 음량 맞춤: 켜짐, ${target} ${amount.toFixed(1)} dB`;
+    }
+
+    function configureAbRepeatWindow(startSec = currentAbTime()) {
+      if (!state.abRepeatSec || !state.originalBuffer) {
+        state.abRepeatStartSec = null;
+        state.abRepeatEndSec = null;
+        return;
+      }
+      const duration = state.originalBuffer.duration;
+      const repeatLength = Math.min(state.abRepeatSec, Math.max(0.2, duration));
+      let start = clamp(startSec, 0, Math.max(0, duration - 0.05));
+      let end = Math.min(duration, start + repeatLength);
+      if (end - start < Math.min(0.2, repeatLength)) {
+        start = Math.max(0, end - repeatLength);
+      } else if (end - start < repeatLength) {
+        start = Math.max(0, end - repeatLength);
+      }
+      state.abRepeatStartSec = start;
+      state.abRepeatEndSec = end;
+    }
+
+    function abRepeatText() {
+      if (!state.abRepeatSec) return "반복: 꺼짐";
+      if (!Number.isFinite(state.abRepeatStartSec) || !Number.isFinite(state.abRepeatEndSec)) return `반복: ${state.abRepeatSec}초`;
+      return `반복: ${state.abRepeatSec}초 ${formatTime(state.abRepeatStartSec)}-${formatTime(state.abRepeatEndSec)}`;
+    }
+
+    function markAbRepeatControls() {
+      document.querySelectorAll("[data-ab-repeat]").forEach((button) => {
+        button.classList.toggle("active", Number(button.dataset.abRepeat) === state.abRepeatSec);
+      });
+    }
+
+    function updateAbCompareStatus() {
+      const status = $("abCompareStatus");
+      if (!status) return;
+      const active = state.activePlayback.kind ? playbackLabel(state.activePlayback.kind) : "대기";
+      status.textContent = `지금 듣는 소리: ${active} · ${abVolumeMatchText()} · ${abRepeatText()}`;
+      markAbRepeatControls();
+    }
+
     function setAudioCurrentTime(audio, time, kind) {
       if (!audio || !Number.isFinite(time)) return;
       const seek = () => {
@@ -1427,14 +1575,18 @@
         const isActive = state.activePlayback.player === id || (!audio.paused && !audio.ended);
         if (!isActive) continue;
         const isSegmentPlayback = state.segmentPlayKind === kind && (id === "abAudio" || isAbEnginePlayer(id));
+        const isAbRepeatPlayback = !isSegmentPlayback
+          && state.abRepeatSec > 0
+          && Number.isFinite(state.abRepeatStartSec)
+          && Number.isFinite(state.abRepeatEndSec);
         return {
           audio,
           kind,
           player: id,
           currentTime: clamp(audio.currentTime, 0, getAudioDuration(kind, audio) || audio.currentTime),
           duration: getAudioDuration(kind, audio),
-          startSec: isSegmentPlayback ? state.segmentPlayStartSec : null,
-          endSec: isSegmentPlayback ? state.segmentPlayEndSec : null
+          startSec: isSegmentPlayback ? state.segmentPlayStartSec : isAbRepeatPlayback ? state.abRepeatStartSec : null,
+          endSec: isSegmentPlayback ? state.segmentPlayEndSec : isAbRepeatPlayback ? state.abRepeatEndSec : null
         };
       }
       return null;
@@ -1493,6 +1645,7 @@
       if (stopButton) {
         stopButton.disabled = !state.segmentPlayKind || !isAbEnginePlaying();
       }
+      updateAbCompareStatus();
     }
 
     function redrawPlaybackCanvases() {
@@ -2898,6 +3051,7 @@
       if (state.processedUrl) URL.revokeObjectURL(state.processedUrl);
       state.processedUrl = null;
       state.processedBuffer = null;
+      state.processedAnalysis = null;
       state.detailToggleNextKind = "original";
       $("processedAudio").removeAttribute("src");
       $("saveBtn").disabled = true;
@@ -3082,6 +3236,7 @@
       state.processedFileName = `${state.fileName}_post_${state.preset}.wav`;
       if (state.processedBuffer) {
         state.processedBuffer = null;
+        state.processedAnalysis = null;
         if (state.processedUrl) URL.revokeObjectURL(state.processedUrl);
         state.processedUrl = null;
         $("processedAudio").removeAttribute("src");
@@ -3108,6 +3263,7 @@
       $("goalHelp").textContent = goals[safeGoal].help;
       if (state.processedBuffer) {
         state.processedBuffer = null;
+        state.processedAnalysis = null;
         if (state.processedUrl) URL.revokeObjectURL(state.processedUrl);
         state.processedUrl = null;
         $("processedAudio").removeAttribute("src");
@@ -3668,6 +3824,7 @@
     function setAbSource(kind, targetTime = null, shouldPlay = false) {
       state.segmentStopEndSec = null;
       state.segmentStopLabel = "";
+      const hasExplicitTarget = Number.isFinite(targetTime);
       const currentTime = Number.isFinite(targetTime)
         ? Math.max(0, targetTime)
         : currentAbTime(kind);
@@ -3681,12 +3838,12 @@
       setAudioCurrentTime(activeAudio, currentTime, kind);
       if (hasAbSource(otherKind)) setAudioCurrentTime(otherAudio, currentTime, otherKind);
 
-      activeAudio.muted = false;
-      activeAudio.volume = 1;
-      if (hasAbSource(otherKind)) {
-        otherAudio.muted = true;
-        otherAudio.volume = 1;
+      if (state.abRepeatSec > 0) {
+        if (hasExplicitTarget || !Number.isFinite(state.abRepeatStartSec) || !Number.isFinite(state.abRepeatEndSec)) {
+          configureAbRepeatWindow(currentTime);
+        }
       }
+      applyAbPlaybackVolumes(kind);
 
       if (shouldResume) {
         if (hasAbSource(otherKind) && otherAudio.paused) {
@@ -3709,6 +3866,7 @@
       $("abNote").textContent = kind === "processed"
         ? "지금 듣는 것은 보정본입니다. 같은 위치에서 원본과 번갈아 비교하세요."
         : "지금 듣는 것은 원본입니다. 보정본과 같은 위치에서 비교하세요.";
+      updateAbCompareStatus();
     }
 
     function playSegment(kind, startSec, endSec) {
@@ -3745,6 +3903,7 @@
         if (!audio) return;
         audio.pause();
         audio.muted = false;
+        audio.volume = 1;
       });
       $("abAudio").removeAttribute("src");
       $("abOriginalBtn").disabled = true;
@@ -3757,10 +3916,15 @@
       state.segmentPlayStartSec = null;
       state.segmentPlayEndSec = null;
       state.detailToggleNextKind = "original";
+      state.abRepeatSec = 0;
+      state.abRepeatStartSec = null;
+      state.abRepeatEndSec = null;
+      markAbRepeatControls();
       $("abNote").textContent = "파일을 넣으면 원본을, 보정본을 만들면 같은 플레이어에서 번갈아 들을 수 있습니다.";
       $("segmentPlayNote").textContent = "구간 듣기를 누르면 선택한 구간만 확인할 수 있습니다.";
       updateSegmentSourceDisplay();
       updateDetailToggleButton();
+      updateAbCompareStatus();
     }
 
     function encodeWav(buffer) {
@@ -3824,6 +3988,7 @@
       const arrayBuffer = await file.arrayBuffer();
       state.originalBuffer = await context.decodeAudioData(arrayBuffer.slice(0));
       state.processedBuffer = null;
+      state.processedAnalysis = null;
       state.analysis = null;
       state.segments = [];
       state.activePlayback = { player: null, kind: null };
@@ -3935,6 +4100,7 @@
         const plan = result.plan;
         state.processedBuffer = processed;
         const processedAnalysis = await analyze(processed);
+        state.processedAnalysis = processedAnalysis;
         const presetLabel = document.querySelector(`[data-preset="${state.preset}"]`)?.textContent || state.preset;
         const goalLabel = plan.goalLabel;
         if (processedAnalysis.peak > 0.99) {
@@ -4205,6 +4371,35 @@
       redrawPlaybackCanvases();
     }
 
+    function setAbRepeatMode(seconds) {
+      state.abRepeatSec = Math.max(0, Number(seconds) || 0);
+      if (state.abRepeatSec) {
+        configureAbRepeatWindow(currentAbTime(state.activePlayback.kind || "original"));
+        $("abNote").textContent = `${state.abRepeatSec}초 반복 듣기를 켰습니다. 파형을 누르면 그 위치부터 반복합니다.`;
+      } else {
+        state.abRepeatStartSec = null;
+        state.abRepeatEndSec = null;
+        $("abNote").textContent = "반복 듣기를 껐습니다.";
+      }
+      markAbRepeatControls();
+      redrawPlaybackCanvases();
+      updateAbCompareStatus();
+    }
+
+    function handleAbRepeatLoop() {
+      if (!state.abRepeatSec) return;
+      if (!Number.isFinite(state.abRepeatStartSec) || !Number.isFinite(state.abRepeatEndSec)) return;
+      if (Number.isFinite(state.segmentStopEndSec) || Number.isFinite(state.segmentPlayStartSec) || Number.isFinite(state.segmentPlayEndSec)) return;
+      const kind = state.activePlayback.kind;
+      if (!kind) return;
+      const audio = abAudioFor(kind);
+      if (!audio || audio.paused || audio.currentTime < state.abRepeatEndSec - 0.04) return;
+      setAudioCurrentTime($("originalAudio"), state.abRepeatStartSec, "original");
+      if (hasAbSource("processed")) setAudioCurrentTime($("processedAudio"), state.abRepeatStartSec, "processed");
+      if (hasAbSource(kind)) audio.play().catch(() => {});
+      redrawPlaybackCanvases();
+    }
+
     bindPlaybackProgress("abAudio", () => state.segmentPlayKind || audioKindFromUrl($("abAudio")));
     bindPlaybackProgress("originalAudio", () => "original");
     bindPlaybackProgress("processedAudio", () => state.processedUrl ? "processed" : null);
@@ -4256,10 +4451,24 @@
     $("abAudio").addEventListener("timeupdate", handleSegmentAutoStop);
     $("originalAudio").addEventListener("timeupdate", handleSegmentAutoStop);
     $("processedAudio").addEventListener("timeupdate", handleSegmentAutoStop);
+    $("originalAudio").addEventListener("timeupdate", handleAbRepeatLoop);
+    $("processedAudio").addEventListener("timeupdate", handleAbRepeatLoop);
 
     $("abOriginalBtn").addEventListener("click", () => setAbSource("original", null, true));
     $("abProcessedBtn").addEventListener("click", () => setAbSource("processed", null, true));
     $("abStopBtn").addEventListener("click", stopAbPlayback);
+    $("abVolumeMatchToggle").addEventListener("change", () => {
+      state.abVolumeMatch = $("abVolumeMatchToggle").checked;
+      applyAbPlaybackVolumes(state.activePlayback.kind || "original");
+      $("abNote").textContent = state.abVolumeMatch
+        ? "비교 음량 맞춤을 켰습니다. 더 크게 들려서 좋아 보이는 착각을 줄입니다."
+        : "비교 음량 맞춤을 껐습니다. 원본과 보정본의 실제 재생 음량 차이를 그대로 듣습니다.";
+      redrawPlaybackCanvases();
+      updateAbCompareStatus();
+    });
+    document.querySelectorAll("[data-ab-repeat]").forEach((button) => {
+      button.addEventListener("click", () => setAbRepeatMode(Number(button.dataset.abRepeat)));
+    });
     updateQuickWorkflow();
     drawAbWave($("abWave"));
   </script>
