@@ -22,13 +22,25 @@ No server, Python, Node.js, account, API key, or internet connection is required
 2. Choose an audio file.
 3. Run the automatic check on the Main tab.
 4. Use `Auto-select suspect section`.
-5. Process and save from the same Main tab workflow.
-6. Open Settings, Section Check, Result, Compare, or Explanation only when needed.
+5. Create a processed version from the Main tab.
+6. Open the Result tab, read the save decision flow, and start the final listening check.
+7. In the final check, choose one result for each segment: processed is OK, uncomfortable, or original is better.
+8. Save only when the app shows a save candidate or final pass.
+
+## Save Decision Flow
+
+The difference may sound subtle on ordinary headphones or speakers. This tool is meant to reduce risk, not make a dramatic mastering change.
+
+1. First check the waveform and numbers for peak safety, clipping risk, muddiness, tiring highs, and obvious regressions.
+2. Then listen to the same short section in original and processed form.
+3. Judge whether the processed version is uncomfortable, not whether it sounds dramatically better.
+4. If the final check marks discomfort or original-is-better, do not save. Try a lighter pass or keep the original.
 
 ## Usage Guidelines
 
 - Keep the first pass conservative. This tool is meant to reduce obvious risks, not to radically remake a mix.
-- Listen to the marked risky sections with headphones or reliable speakers before trusting the result.
+- Check the marked risky sections visually first, then listen on the equipment you have.
+- The difference between original and processed audio may be subtle on ordinary playback gear. Use the waveform and save decision flow together.
 - If the processed version sounds smaller, duller, distorted, or tiring, keep the original or try a lighter goal.
 - Do not stack many exports on top of each other. Re-processing an already processed file can make artifacts worse.
 - Keep a copy of the original file. The exported WAV is a new file, but it should not become your only source.
@@ -38,7 +50,7 @@ No server, Python, Node.js, account, API key, or internet connection is required
 
 - Loads an audio file locally in the browser
 - Splits the app into Main, Settings, Section Check, Result, Compare, and Explanation tabs
-- Shows basic safety checks such as peak, loudness, clipping risk, muddiness, harshness, high-frequency note tails, stereo balance, mono risk, and silence
+- Shows basic safety checks such as peak, loudness, clipping risk, muddiness, tiring highs, high-frequency note tails, stereo balance, mono risk, and silence
 - Checks small-speaker risk from stereo/phase behavior
 - Marks sections to review directly on the waveform
 - Starts with broad regions, with detailed sections expandable only when needed
@@ -56,10 +68,13 @@ No server, Python, Node.js, account, API key, or internet connection is required
 - Offers beginner-friendly goals:
   - Auto
   - Vocal clarity
-  - Clean low end
+  - Reduce muddiness
   - Softer highs
+  - Reduce smeared reverb
   - Safer separation
 - Compares original and processed audio
+- Provides a final listening check before saving
+- Prevents accidental saving after a final-check hold result
 - Explains the original and processed sound in plain language from local analysis values
 - Exports the processed result as WAV
 

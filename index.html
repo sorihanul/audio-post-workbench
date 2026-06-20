@@ -760,6 +760,89 @@
       margin: 6px 0;
       color: #344054;
     }
+    .save-flow {
+      border: 1px solid #d7e4f5;
+      border-radius: 8px;
+      padding: 14px;
+      margin: 12px 0;
+      background: #f8fbff;
+    }
+    .save-flow.warn {
+      border-color: #f0d28c;
+      background: #fffaf0;
+    }
+    .save-flow.bad {
+      border-color: #f3b6b5;
+      background: #fff7f7;
+    }
+    .save-flow-main {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+    }
+    .save-flow-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .save-flow.warn .save-flow-badge { background: var(--warn-soft); color: var(--warn); }
+    .save-flow.bad .save-flow-badge { background: #fee4e2; color: var(--bad); }
+    .save-flow-main strong {
+      display: block;
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+    .save-flow-main p {
+      margin: 0;
+      color: #344054;
+    }
+    .save-flow-steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      list-style: none;
+      margin: 12px 0 0;
+      padding: 0;
+    }
+    .save-flow-steps li {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 8px;
+      padding: 10px;
+      border: 1px solid #d7e4f5;
+      border-radius: 8px;
+      background: #fff;
+    }
+    .save-flow-steps i {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: #e8eef6;
+      color: #344054;
+      font-style: normal;
+      font-weight: 900;
+    }
+    .save-flow-steps b {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 13px;
+    }
+    .save-flow-steps p {
+      margin: 0;
+      color: #475467;
+      font-size: 13px;
+    }
     .final-check {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -907,6 +990,8 @@
       .explain-grid { grid-template-columns: 1fr; }
       .quality-main { grid-template-columns: 1fr; }
       .quality-lanes { grid-template-columns: 1fr; }
+      .save-flow-main { grid-template-columns: 1fr; }
+      .save-flow-steps { grid-template-columns: 1fr; }
       .final-check-head { display: block; }
       .final-check-head .actions { margin-top: 10px; }
       .final-check-current { grid-template-columns: 1fr; }
@@ -972,7 +1057,7 @@
 
     <section class="warn active-view" data-view="main">
       <h2>경계</h2>
-      <p>이 도구는 전문 믹싱/마스터링을 대체하지 않습니다. 초보자가 과한 음량, 클리핑, 먹먹함, 날카로움을 덜 망치게 돕는 로컬 후보정 도구입니다.</p>
+      <p>이 도구는 전문 믹싱/마스터링을 대체하지 않습니다. 초보자가 과한 음량, 깨짐, 답답함, 귀 피로를 덜 망치게 돕는 로컬 후보정 도구입니다.</p>
     </section>
 
     <section class="active-view" data-view="main">
@@ -1011,10 +1096,10 @@
         <div id="peakMetric" class="metric"><strong id="peakValue">-</strong><span>최대 소리</span><small id="peakHelp">가장 큰 순간이 얼마나 0 dB에 가까운지 봅니다.</small></div>
         <div id="rmsMetric" class="metric"><strong id="rmsValue">-</strong><span>평균 소리</span><small id="rmsHelp">노래 전체가 체감상 어느 정도 크게 들릴지 봅니다.</small></div>
         <div id="clipMetric" class="metric"><strong id="clipValue">-</strong><span>찢어짐 위험</span><small id="clipHelp">높으면 소리가 깨질 수 있어 더 키우면 안 됩니다.</small></div>
-        <div id="dynamicMetric" class="metric"><strong id="dynamicValue">-</strong><span>움직임</span><small id="dynamicHelp">소리의 숨 쉴 공간입니다. 너무 낮으면 이미 눌린 소리입니다.</small></div>
-        <div id="mudMetric" class="metric"><strong id="mudValue">-</strong><span>먹먹함</span><small id="mudHelp">저역/저중역이 많으면 보컬과 악기가 답답해질 수 있습니다.</small></div>
-        <div id="sharpMetric" class="metric"><strong id="sharpValue">-</strong><span>날카로움</span><small id="sharpHelp">고역이 많으면 귀가 피곤하거나 치찰음이 튈 수 있습니다.</small></div>
-        <div id="tailHarshMetric" class="metric"><strong id="tailHarshValue">-</strong><span>고역 꼬리</span><small id="tailHarshHelp">큰 음 끝에 치치거리는 잔여음이 남는지 봅니다.</small></div>
+        <div id="dynamicMetric" class="metric"><strong id="dynamicValue">-</strong><span>숨 쉴 공간</span><small id="dynamicHelp">작은 소리와 큰 소리의 차이입니다. 너무 낮으면 꽉 막혀 들릴 수 있습니다.</small></div>
+        <div id="mudMetric" class="metric"><strong id="mudValue">-</strong><span>답답함</span><small id="mudHelp">낮은 소리가 뭉치면 보컬과 악기가 흐릿하게 들릴 수 있습니다.</small></div>
+        <div id="sharpMetric" class="metric"><strong id="sharpValue">-</strong><span>귀 피로</span><small id="sharpHelp">높은 소리가 많으면 귀가 따갑거나 오래 듣기 피곤할 수 있습니다.</small></div>
+        <div id="tailHarshMetric" class="metric"><strong id="tailHarshValue">-</strong><span>끝의 치치거림</span><small id="tailHarshHelp">큰 음이 끝날 때 얇고 거친 소리가 남는지 봅니다.</small></div>
         <div id="balanceMetric" class="metric"><strong id="balanceValue">-</strong><span>좌우 밸런스</span><small id="balanceHelp">왼쪽/오른쪽 중 한쪽이 과하게 큰지 봅니다.</small></div>
         <div id="monoMetric" class="metric"><strong id="monoValue">-</strong><span>모노 확인</span><small id="monoHelp">스테레오를 하나로 합쳤을 때 소리가 크게 줄어드는지 봅니다.</small></div>
         <div id="phaseMetric" class="metric"><strong id="phaseValue">-</strong><span>작은 스피커</span><small id="phaseHelp">좌우가 서로 지워져 작은 스피커에서 힘이 빠질 위험을 봅니다.</small><div class="phase-meter"><i id="phaseNeedle" class="phase-needle"></i></div></div>
@@ -1121,8 +1206,8 @@
           <button data-goal="auto" class="active">자동<br><small>분석값에 맡김</small></button>
           <span class="goal-group-label">답답함과 피로 줄이기</span>
           <button data-goal="clarity">보컬 또렷<br><small>중심 소리 선명</small></button>
-          <button data-goal="cleanLow">먹먹함 정리<br><small>저음 뭉침 완화</small></button>
-          <button data-goal="softenHigh">귀 피로 줄이기<br><small>날카로움 완화</small></button>
+          <button data-goal="cleanLow">답답함 줄이기<br><small>저음 뭉침 완화</small></button>
+          <button data-goal="softenHigh">귀 피로 줄이기<br><small>따가운 고음 완화</small></button>
           <button data-goal="reduceReverb">번지는 잔향 줄이기<br><small>멀고 퍼진 느낌 완화</small></button>
           <span class="goal-group-label">공간감 확인</span>
           <button data-goal="separation">분리감 살리기<br><small>스테레오 폭 안전 보강</small></button>
@@ -1177,6 +1262,20 @@
           </div>
         </div>
       </div>
+      <div id="saveFlowBox" class="save-flow">
+        <div class="save-flow-main">
+          <span id="saveFlowBadge" class="save-flow-badge">대기</span>
+          <div>
+            <strong>저장 판단 순서</strong>
+            <p id="saveFlowLead">보정본을 만들면 눈으로 볼 것, 귀로 들을 것, 저장 여부를 한 줄씩 정리합니다.</p>
+          </div>
+        </div>
+        <ol class="save-flow-steps">
+          <li><i>1</i><div><b>눈으로 먼저 확인</b><p id="saveFlowVisual">파형과 수치로 위험이 줄었는지 봅니다.</p></div></li>
+          <li><i>2</i><div><b>같은 구간만 듣기</b><p id="saveFlowListen">차이가 작게 들리면 불편함이 있는지만 확인합니다.</p></div></li>
+          <li><i>3</i><div><b>저장 또는 보류</b><p id="saveFlowDecision">불편하지 않고 수치가 악화되지 않으면 저장 후보입니다.</p></div></li>
+        </ol>
+      </div>
       <div id="finalCheckBox" class="final-check">
         <div class="final-check-head">
           <div>
@@ -1200,9 +1299,9 @@
           <span id="finalCheckNow" class="final-check-now" aria-live="polite">지금 들리는 소리: 대기</span>
         </div>
         <div class="final-check-actions">
-          <button data-final-check-result="ok" disabled>괜찮음</button>
-          <button data-final-check-result="bad" disabled>불편함</button>
-          <button data-final-check-result="original" disabled>원본이 나음</button>
+          <button data-final-check-result="ok" disabled>보정본 괜찮음</button>
+          <button data-final-check-result="bad" disabled>듣기 불편함</button>
+          <button data-final-check-result="original" disabled>원본이 더 나음</button>
         </div>
         <ol id="finalCheckList" class="final-check-list">
           <li>아직 점검할 구간이 없습니다.</li>
@@ -1220,9 +1319,9 @@
         <tbody>
           <tr><td>최대 소리</td><td id="beforePeak">-</td><td id="afterPeak">-</td><td id="peakDelta">-</td></tr>
           <tr><td>평균 소리</td><td id="beforeRms">-</td><td id="afterRms">-</td><td id="rmsDelta">-</td></tr>
-          <tr><td>움직임</td><td id="beforeDynamic">-</td><td id="afterDynamic">-</td><td id="dynamicDelta">-</td></tr>
-          <tr><td>먹먹함</td><td id="beforeMud">-</td><td id="afterMud">-</td><td id="mudDelta">-</td></tr>
-          <tr><td>날카로움</td><td id="beforeSharp">-</td><td id="afterSharp">-</td><td id="sharpDelta">-</td></tr>
+          <tr><td>숨 쉴 공간</td><td id="beforeDynamic">-</td><td id="afterDynamic">-</td><td id="dynamicDelta">-</td></tr>
+          <tr><td>답답함</td><td id="beforeMud">-</td><td id="afterMud">-</td><td id="mudDelta">-</td></tr>
+          <tr><td>귀 피로</td><td id="beforeSharp">-</td><td id="afterSharp">-</td><td id="sharpDelta">-</td></tr>
         </tbody>
       </table>
       <div id="processLogBox" class="diagnosis">
@@ -1284,8 +1383,8 @@
       <ul class="result-list">
         <li><span class="pill">최대 소리</span> 0 dB에 가까우면 찢어질 위험이 큽니다.</li>
         <li><span class="pill">평균 소리</span> 너무 낮으면 작게 들리고, 너무 높으면 눌린 느낌이 납니다.</li>
-        <li><span class="pill">먹먹함</span> 저역/저중역이 과하면 보컬과 악기가 답답하게 들릴 수 있습니다.</li>
-        <li><span class="pill">날카로움</span> 고역이 과하면 귀가 피곤하거나 치찰음이 도드라질 수 있습니다.</li>
+        <li><span class="pill">답답함</span> 낮은 소리가 뭉치면 보컬과 악기가 흐릿하게 들릴 수 있습니다.</li>
+        <li><span class="pill">귀 피로</span> 높은 소리가 과하면 귀가 따갑거나 오래 듣기 피곤할 수 있습니다.</li>
         <li><span class="pill">좌우 밸런스</span> 한쪽이 과하게 크면 이어폰이나 스피커에서 중심이 치우쳐 들릴 수 있습니다.</li>
         <li><span class="pill">모노 확인</span> 모노에서 크게 줄어들면 작은 스피커나 일부 재생 환경에서 힘이 빠질 수 있습니다.</li>
       </ul>
@@ -1365,19 +1464,19 @@
     const goals = {
       auto: {
         label: "자동",
-        help: "분석 결과에 맞춰 먹먹함, 날카로움, 피크 위험을 우선 정리합니다."
+        help: "분석 결과에 맞춰 답답함, 귀 피로, 최대 소리 위험을 우선 정리합니다."
       },
       clarity: {
         label: "보컬 또렷",
-        help: "중심 소리가 묻히지 않도록 중고역 선명도를 아주 조금 보강합니다."
+        help: "보컬과 중심 악기가 묻히지 않도록 선명도를 아주 조금 보강합니다."
       },
       cleanLow: {
-        label: "먹먹함 정리",
+        label: "답답함 줄이기",
         help: "저음과 저중역이 뭉쳐 답답하게 들리는 후보를 줄입니다."
       },
       softenHigh: {
         label: "귀 피로 줄이기",
-        help: "날카로운 고역과 치찰음 후보를 더 부드럽게 누릅니다."
+        help: "귀를 찌르는 높은 소리와 치찰음 후보를 더 부드럽게 누릅니다."
       },
       reduceReverb: {
         label: "번지는 잔향 줄이기",
@@ -1608,11 +1707,11 @@
     }
 
     function describeTailHarshness(label, ratio) {
-      if (label === "높음") return `큰 음 끝에 치치거림 후보가 강합니다. 고역 꼬리 완화를 먼저 들어보세요.`;
-      if (label === "주의") return `끝음에 고역 잔여음 후보가 있습니다. 헤드폰과 스피커에서 다시 확인하세요.`;
-      if (label === "세부 확인") return `아주 짧은 고역 찌름 후보가 있습니다. 표시된 세부 위치를 다시 들어보세요.`;
+      if (label === "높음") return `큰 음 끝에 치치거림 후보가 강합니다. 끝부분 완화를 먼저 들어보세요.`;
+      if (label === "주의") return `끝음에 높은 소리 잔여음 후보가 있습니다. 헤드폰과 스피커에서 다시 확인하세요.`;
+      if (label === "세부 확인") return `아주 짧게 귀를 찌르는 후보가 있습니다. 표시된 세부 위치를 다시 들어보세요.`;
       if (label === "낮음") return `끝음 치치거림 후보는 낮습니다.`;
-      return `끝음 고역 꼬리는 크게 튀지 않습니다.`;
+      return `끝음 치치거림은 크게 보이지 않습니다.`;
     }
 
     function summarizeTailHarshness(buffer) {
@@ -2197,7 +2296,7 @@
     function describeDynamic(analysis) {
       const label = labelDynamic(analysis);
       if (label === "많이 눌림") return "이미 꽉 눌린 소리입니다. 강한 보정보다 약하게 또는 기본으로 비교하세요.";
-      if (label === "넓음") return "움직임이 넓습니다. 보정 후에도 원본의 자연스러움이 줄었는지 확인하세요.";
+      if (label === "넓음") return "작은 소리와 큰 소리의 차이가 살아 있습니다. 보정 후에도 원본의 자연스러움이 줄었는지 확인하세요.";
       return "특별히 과하게 눌린 상태는 아닙니다.";
     }
 
@@ -2205,20 +2304,20 @@
       if (kind === "mud") {
         if (label === "높음") return "답답하게 들릴 수 있습니다. 기본 또는 강하게 보정이 도움이 될 수 있습니다.";
         if (label === "주의") return "약간 답답할 수 있습니다. 기본 보정으로 비교해보세요.";
-        return "먹먹함은 크게 튀지 않습니다.";
+        return "답답함은 크게 보이지 않습니다.";
       }
       if (label === "높음") return "귀가 피곤할 수 있습니다. 강하게 키우는 보정은 피하세요.";
-      if (label === "주의") return "고역이 조금 튈 수 있습니다. 약하게 보정 후 들어보세요.";
-      return "날카로움은 크게 튀지 않습니다.";
+      if (label === "주의") return "높은 소리가 조금 튈 수 있습니다. 약하게 보정 후 들어보세요.";
+      return "귀를 찌르는 느낌은 크게 보이지 않습니다.";
     }
 
     function describeTailHarshMetric(analysis) {
       const label = labelTailHarsh(analysis);
-      if (label === "높음") return "큰 음 끝부분에서 치치거림 후보가 강합니다. 구간표의 고역 꼬리 완화를 먼저 비교하세요.";
-      if (label === "주의") return "끝음에 고역 잔여음 후보가 있습니다. 보정본과 원본을 같은 구간에서 비교하세요.";
-      if (label === "세부 확인") return "아주 짧은 고역 찌름 후보가 있습니다. 구간표의 세부 위치를 다시 들어보세요.";
+      if (label === "높음") return "큰 음 끝부분에서 치치거림 후보가 강합니다. 구간표의 끝부분 완화를 먼저 비교하세요.";
+      if (label === "주의") return "끝음에 높은 소리 잔여음 후보가 있습니다. 보정본과 원본을 같은 구간에서 비교하세요.";
+      if (label === "세부 확인") return "아주 짧게 귀를 찌르는 후보가 있습니다. 구간표의 세부 위치를 다시 들어보세요.";
       if (label === "낮음") return "끝음 치치거림 후보는 낮습니다.";
-      return "끝음 고역 꼬리는 크게 튀지 않습니다.";
+      return "끝음 치치거림은 크게 보이지 않습니다.";
     }
 
     function updateMetricTone(id, level) {
@@ -2238,11 +2337,11 @@
       else if (clip === "주의") warnings.push("최대 소리가 0 dB에 가까워서 여유가 적습니다.");
 
       if (dynamic === "많이 눌림") warnings.push("이미 눌린 소리라 강한 보정은 피하는 편이 안전합니다.");
-      if (mud !== "보통") warnings.push("먹먹함이 있어 저역을 조금 정리하는 보정이 어울립니다.");
-      if (sharp !== "보통") warnings.push("날카로움이 있어 고역을 더 올리는 보정은 피하세요.");
-      if (tailHarsh === "높음") warnings.push("큰 음 끝의 치치거림 후보가 있어 고역 꼬리 완화를 먼저 비교하세요.");
-      else if (tailHarsh === "주의") warnings.push("끝음 고역 잔여음 후보가 있어 해당 구간을 다시 들어보세요.");
-      else if (tailHarsh === "세부 확인") warnings.push("짧은 고역 찌름 후보가 있어 표시된 세부 위치를 다시 들어보세요.");
+      if (mud !== "보통") warnings.push("답답함이 있어 낮은 소리를 조금 정리하는 보정이 어울립니다.");
+      if (sharp !== "보통") warnings.push("귀가 피곤할 수 있어 높은 소리를 더 올리는 보정은 피하세요.");
+      if (tailHarsh === "높음") warnings.push("큰 음 끝의 치치거림 후보가 있어 끝부분 완화를 먼저 비교하세요.");
+      else if (tailHarsh === "주의") warnings.push("끝음에 높은 소리 잔여음 후보가 있어 해당 구간을 다시 들어보세요.");
+      else if (tailHarsh === "세부 확인") warnings.push("짧게 귀를 찌르는 후보가 있어 표시된 세부 위치를 다시 들어보세요.");
       if (analysis.balanceLabel === "치우침") warnings.push("좌우 밸런스가 치우쳐 있어 중심이 한쪽으로 밀릴 수 있습니다.");
       if (analysis.monoLabel === "위험") warnings.push("모노에서 소리가 크게 줄어 위상 충돌 가능성이 있습니다.");
       if (analysis.phaseLabel === "위험") warnings.push("작은 스피커에서 좌우가 서로 지워질 수 있습니다.");
@@ -2281,8 +2380,71 @@
       $("qualityGoodList").innerHTML = "<li>보정본을 만든 뒤 표시됩니다.</li>";
       $("qualityCautionList").innerHTML = "<li>보정본을 만든 뒤 표시됩니다.</li>";
       $("qualityActionList").innerHTML = "<li>보정본을 만든 뒤 원본과 같은 구간으로 비교하세요.</li>";
+      resetSaveFlowGuide();
       resetFinalCheck();
       $("saveChecklistList").innerHTML = "<li>보정본을 만든 뒤 원본과 같은 구간으로 비교하세요.</li>";
+    }
+
+    function resetSaveFlowGuide() {
+      $("saveFlowBox").className = "save-flow";
+      $("saveFlowBadge").textContent = "대기";
+      $("saveFlowLead").textContent = "보정본을 만들면 눈으로 볼 것, 귀로 들을 것, 저장 여부를 한 줄씩 정리합니다.";
+      $("saveFlowVisual").textContent = "파형과 수치로 위험이 줄었는지 봅니다.";
+      $("saveFlowListen").textContent = "차이가 작게 들리면 불편함이 있는지만 확인합니다.";
+      $("saveFlowDecision").textContent = "불편하지 않고 수치가 악화되지 않으면 저장 후보입니다.";
+    }
+
+    function updateSaveFlowGuide(before, after, beforeSegments, afterSegments) {
+      const beforeScore = state.originalScore ?? computeSafetyScore(before, beforeSegments || []);
+      const afterScore = computeSafetyScore(after, afterSegments || []);
+      const scoreDelta = afterScore - beforeScore;
+      const peakDelta = dbNumber(after.peak) - dbNumber(before.peak);
+      const rmsAbsDelta = Math.abs(dbNumber(after.rms) - dbNumber(before.rms));
+      const priority = firstQualitySegment(afterSegments || []);
+      const clipRisk = labelClip(after) === "높음" || after.peak > 0.99;
+      const saferSignal = scoreDelta >= 3 || peakDelta < -1 || after.peak <= 0.96;
+
+      let level = "";
+      let badge = "차이 작음";
+      let lead = "듣기로 차이가 작게 느껴질 수 있습니다. 그럴 때는 실패가 아니라, 파형과 수치로 위험이 줄었는지 먼저 보세요.";
+      let visual = "눈으로도 변화가 크지 않습니다. 원본 느낌을 크게 흔들지 않는 비교본으로 보면 됩니다.";
+      let listen = priority
+        ? `${formatTime(priority.startSec)}-${formatTime(priority.endSec)} 구간만 원본과 보정본으로 번갈아 들어보세요.`
+        : "가장 큰 부분만 원본과 보정본으로 번갈아 들어보세요.";
+      let decision = "귀로 확연한 차이가 없어도 불편하지 않고 수치가 악화되지 않았다면 저장 후보입니다.";
+
+      if (clipRisk) {
+        level = "bad";
+        badge = "저장 보류";
+        lead = "보정본이 저장하기 안전하다고 보기 어렵습니다.";
+        visual = "최대 소리가 너무 끝까지 차 있습니다. 파형에서 위아래가 꽉 차 보이면 저장하지 않는 편이 안전합니다.";
+        listen = "크게 들리는 부분에서 거칠게 깨지는지 확인하세요.";
+        decision = "저장하지 말고 약하게 다시 만들거나 원본을 유지하세요.";
+      } else if (rmsAbsDelta > 1.5) {
+        level = "warn";
+        badge = "음량 확인";
+        lead = "보정본이 좋아진 것이 아니라 더 크게 들려 좋아 보일 수 있습니다.";
+        visual = "평균 소리 차이가 큽니다. 비교 음량 맞춤을 켜고 같은 구간으로 다시 확인하세요.";
+        decision = "크기 차이를 맞춘 뒤에도 보정본이 편하면 저장 후보, 아니면 원본을 유지하세요.";
+      } else if (scoreDelta < -4 || peakDelta > 1) {
+        level = "warn";
+        badge = "원본도 후보";
+        lead = "수치상 보정본이 더 안전하다고 단정하기 어렵습니다.";
+        visual = "파형이나 수치에서 원본보다 좋아진 신호가 약합니다.";
+        decision = "조금이라도 불편하면 저장하지 말고 원본을 유지하세요.";
+      } else if (saferSignal && scoreDelta >= 3) {
+        badge = "저장 후보";
+        lead = "귀로 큰 차이가 안 나도 괜찮습니다. 이 보정은 확 바꾸는 용도가 아니라 위험을 줄이는 비교본입니다.";
+        visual = "수치상 안전 신호가 좋아졌습니다. 파형에서 튀는 부분이 덜 따가운지 같이 보세요.";
+        decision = "최종점검에서 불편함이나 원본 우위가 없으면 저장해도 됩니다.";
+      }
+
+      $("saveFlowBox").className = `save-flow ${level}`.trim();
+      $("saveFlowBadge").textContent = badge;
+      $("saveFlowLead").textContent = lead;
+      $("saveFlowVisual").textContent = visual;
+      $("saveFlowListen").textContent = listen;
+      $("saveFlowDecision").textContent = decision;
     }
 
     function resultVerdict(before, after, beforeSegments, afterSegments) {
@@ -2517,9 +2679,9 @@
     }
 
     function finalCheckResultText(result) {
-      if (result === "ok") return "괜찮음";
-      if (result === "bad") return "불편함";
-      if (result === "original") return "원본이 나음";
+      if (result === "ok") return "보정본 괜찮음";
+      if (result === "bad") return "듣기 불편함";
+      if (result === "original") return "원본이 더 나음";
       return "미확인";
     }
 
@@ -2601,6 +2763,7 @@
       state.abRepeatEndSec = item.endSec;
       $("finalCheckStartBtn").disabled = true;
       $("finalCheckStopBtn").disabled = false;
+      $("saveBtn").disabled = true;
       setFinalCheckResultButtons(true);
       $("finalCheckStatus").className = "final-check-status";
       $("finalCheckStatus").querySelector("p").textContent = "원본과 보정본이 같은 구간에서 반복됩니다. 듣고 아래 세 버튼 중 하나만 누르세요.";
@@ -2608,6 +2771,7 @@
       renderFinalCheck();
       updateFinalCheckPlaybackDisplay("original");
       updateAbCompareStatus();
+      updateQuickWorkflow();
     }
 
     function startFinalCheck() {
@@ -2620,6 +2784,9 @@
         prepareFinalCheck(analyzeSegments(state.processedBuffer));
       }
       if (!state.finalCheckItems.length) return;
+      state.finalCheckItems.forEach((item) => {
+        item.result = null;
+      });
       playFinalCheckItem(0);
     }
 
@@ -2635,11 +2802,12 @@
       state.finalCheckIndex = -1;
       $("finalCheckStartBtn").disabled = false;
       $("finalCheckStopBtn").disabled = true;
+      $("saveBtn").disabled = risky.length ? true : !state.processedBuffer;
       setFinalCheckResultButtons(false);
       $("finalCheckStatus").className = `final-check-status ${risky.length ? "warn" : "good"}`;
       $("finalCheckStatus").querySelector("p").textContent = risky.length
-        ? `${risky.length}개 구간에서 불편함 또는 원본 우위가 표시됐습니다. 저장 보류로 보고 약하게 다시 만들거나 원본을 유지하세요.`
-        : "확인한 구간이 모두 괜찮음으로 표시됐습니다. 저장 후보로 볼 수 있습니다.";
+        ? `${risky.length}개 구간에서 듣기 불편함 또는 원본이 더 나음이 표시됐습니다. 저장 보류로 보고 약하게 다시 만들거나 원본을 유지하세요.`
+        : "확인한 구간이 모두 보정본 괜찮음으로 표시됐습니다. 저장 후보로 볼 수 있습니다.";
       $("finalCheckTitle").textContent = risky.length ? "저장 보류" : "저장 후보";
       $("finalCheckReason").textContent = risky.length
         ? "불편하다고 표시한 구간을 다시 듣고, 저장하지 않는 쪽도 후보로 두세요."
@@ -2647,10 +2815,37 @@
       $("processNote").textContent = risky.length
         ? "최종 점검에서 저장 보류 신호가 나왔습니다. 약하게 다시 만들거나 원본을 유지하세요."
         : "최종 점검 통과: 저장 후보입니다.";
+      $("resultVerdict").className = `verdict-card ${risky.length ? "warn" : "good"}`;
+      $("resultVerdictLabel").textContent = risky.length ? "저장 보류" : "저장 후보";
+      $("resultVerdictText").textContent = risky.length
+        ? "최종점검에서 불편함 또는 원본이 더 나음이 나왔습니다. 지금 보정본은 저장하지 않는 편이 안전합니다."
+        : "최종점검에서 불편한 구간이 표시되지 않았습니다. 저장 후보로 볼 수 있습니다.";
+      $("qualityJudgment").className = `quality-board ${risky.length ? "warn" : ""}`.trim();
+      $("qualityVerdictPill").textContent = risky.length ? "저장 보류" : "최종 통과";
+      $("qualityHeadline").textContent = risky.length ? "귀로 불편한 구간이 있었습니다." : "최종점검 기준 저장 후보입니다.";
+      $("qualitySummary").textContent = risky.length
+        ? "수치나 파형이 좋아 보여도 직접 들었을 때 불편하면 저장하지 않는 편이 안전합니다."
+        : "차이가 크게 들리지 않아도 괜찮습니다. 위험을 줄이고 불편한 구간이 없으면 이 도구의 목적에는 맞습니다.";
+      if (risky.length) {
+        $("saveFlowBox").className = "save-flow bad";
+        $("saveFlowBadge").textContent = "저장 보류";
+        $("saveFlowLead").textContent = "최종점검에서 불편함 또는 원본 우위가 표시됐습니다.";
+        $("saveFlowVisual").textContent = "파형이나 수치가 좋아 보여도, 귀로 불편하면 저장하지 않는 편이 안전합니다.";
+        $("saveFlowListen").textContent = "표시한 구간을 다시 듣고 약하게 다시 만들지, 원본을 유지할지 고르세요.";
+        $("saveFlowDecision").textContent = "지금 상태에서는 저장을 막았습니다. 다시 만들거나 원본을 유지하세요.";
+      } else {
+        $("saveFlowBox").className = "save-flow";
+        $("saveFlowBadge").textContent = "최종 통과";
+        $("saveFlowLead").textContent = "확인한 구간에서 불편함이나 원본 우위가 표시되지 않았습니다.";
+        $("saveFlowVisual").textContent = "파형과 수치 확인 뒤 귀로도 불편한 구간이 없었습니다.";
+        $("saveFlowListen").textContent = "그래도 저장 전 전체 앞뒤 연결이 자연스러운지만 한 번 더 들어보세요.";
+        $("saveFlowDecision").textContent = "이제 저장 후보입니다. 필요하면 보정본 저장을 누르세요.";
+      }
       renderFinalCheck();
       $("finalCheckIndex").textContent = risky.length ? "보류" : "완료";
       updateFinalCheckPlaybackDisplay(null, "지금 들리는 소리: 점검 종료");
       updateAbCompareStatus();
+      updateQuickWorkflow();
     }
 
     function recordFinalCheckResult(result) {
@@ -2676,6 +2871,7 @@
       state.finalCheckIndex = -1;
       $("finalCheckStartBtn").disabled = !state.finalCheckItems.length;
       $("finalCheckStopBtn").disabled = true;
+      $("saveBtn").disabled = !state.processedBuffer;
       setFinalCheckResultButtons(false);
       $("finalCheckStatus").className = "final-check-status";
       $("finalCheckStatus").querySelector("p").textContent = "최종 점검을 멈췄습니다. 다시 시작하면 첫 구간부터 확인합니다.";
@@ -2683,6 +2879,7 @@
       $("finalCheckIndex").textContent = "-";
       updateFinalCheckPlaybackDisplay(null, "지금 들리는 소리: 멈춤");
       updateAbCompareStatus();
+      updateQuickWorkflow();
     }
 
     function buildSaveChecklist(before, after, afterSegments) {
@@ -2701,7 +2898,7 @@
         : { level: "caution", text: "원본과 보정본의 체감 음량 차이가 큽니다. 같은 음량처럼 들리는지 확인하세요." });
       items.push(labelDynamic(after) === "많이 눌림"
         ? { level: "caution", text: "보정본도 눌린 느낌이 남아 있습니다. 강하게보다 약하게가 안전할 수 있습니다." }
-        : { level: "", text: "소리의 움직임은 크게 망가지지 않았습니다." });
+        : { level: "", text: "작은 소리와 큰 소리의 차이는 크게 망가지지 않았습니다." });
       if (priority) {
         items.push({ level: "caution", text: `${formatTime(priority.startSec)}-${formatTime(priority.endSec)} 구간을 저장 전 마지막으로 들어보세요.` });
       } else {
@@ -2737,20 +2934,20 @@
       if (metric === "dynamic") {
         const delta = after.dynamic - before.dynamic;
         if (delta < -1) return "조금 더 눌렸습니다.";
-        if (delta > 1) return "움직임이 조금 살아났습니다.";
-        return "움직임 변화는 작습니다.";
+        if (delta > 1) return "숨 쉴 공간이 조금 살아났습니다.";
+        return "숨 쉴 공간 변화는 작습니다.";
       }
       if (metric === "mud") {
         const delta = after.lowRatio - before.lowRatio;
-        if (delta < -0.08) return "먹먹함 후보가 줄었습니다.";
-        if (delta > 0.08) return "저역 비중이 늘었습니다.";
-        return "먹먹함 변화는 작습니다.";
+        if (delta < -0.08) return "답답함 후보가 줄었습니다.";
+        if (delta > 0.08) return "낮은 소리 비중이 늘었습니다.";
+        return "답답함 변화는 작습니다.";
       }
       if (metric === "sharp") {
         const delta = after.highRatio - before.highRatio;
-        if (delta < -0.08) return "날카로움 후보가 줄었습니다.";
-        if (delta > 0.08) return "고역 비중이 늘었습니다.";
-        return "날카로움 변화는 작습니다.";
+        if (delta < -0.08) return "귀 피로 후보가 줄었습니다.";
+        if (delta > 0.08) return "높은 소리 비중이 늘었습니다.";
+        return "귀 피로 변화는 작습니다.";
       }
       return "-";
     }
@@ -2782,11 +2979,14 @@
         "위험 구간": "특정 구간에서 갑자기 튀는 소리",
         "작은 스피커": "휴대폰이나 작은 스피커에서 힘이 빠질 수 있는 부분",
         "고역 꼬리": "큰 음이 끝날 때 얇고 거칠게 남는 소리",
+        "끝의 치치거림": "큰 음이 끝날 때 얇고 거칠게 남는 소리",
         "모노": "스피커 환경에 따라 소리가 약해질 수 있는 부분",
         "좌우": "소리 중심이 한쪽으로 치우쳐 들릴 수 있는 부분",
         "눌림": "소리가 꽉 막혀 숨 쉴 틈이 적은 느낌",
         "먹먹함": "낮은 소리가 뭉쳐 흐리고 답답하게 들리는 느낌",
+        "답답함": "낮은 소리가 뭉쳐 흐리고 답답하게 들리는 느낌",
         "날카로움": "높은 소리가 귀를 찌르거나 피곤하게 만드는 느낌",
+        "귀 피로": "높은 소리가 귀를 찌르거나 피곤하게 만드는 느낌",
         "무음": "앞이나 뒤에 필요 이상으로 조용한 구간",
         "낮음": "크게 급한 문제는 없어 보이는 상태"
       };
@@ -3508,7 +3708,7 @@
           { label: "비교", action: "", disabled: true }
         ]);
       } else if (!hasAnalysis) {
-        applyDecision("caution", "다음 버튼", "자동 점검을 먼저 누르세요", "앱이 소리 크기, 깨짐 위험, 먹먹함, 날카로움, 작은 스피커 위험을 먼저 확인합니다.", [
+        applyDecision("caution", "다음 버튼", "자동 점검을 먼저 누르세요", "앱이 소리 크기, 깨짐 위험, 답답함, 귀 피로, 작은 스피커 위험을 먼저 확인합니다.", [
           { label: "자동 점검", action: "analyze" },
           { label: "설정 보기", action: "settings" },
           { label: "구간 보기", action: "", disabled: true }
@@ -3625,10 +3825,11 @@
       const priority = getPrioritySegment();
       const hasEdits = state.segmentEdits.length > 0;
       const hasProcessed = Boolean(state.processedBuffer);
+      const saveBlocked = state.finalCheckStatus === "hold" || state.finalCheckStatus === "running";
 
       $("quickSelectBtn").disabled = !hasAnalysis || !priority;
       $("quickProcessBtn").disabled = !hasFile;
-      $("quickSaveBtn").disabled = !hasProcessed;
+      $("quickSaveBtn").disabled = !hasProcessed || saveBlocked;
 
       if (message) {
         $("quickStatus").textContent = message;
@@ -3640,6 +3841,10 @@
         $("quickStatus").textContent = `${formatTime(priority.startSec)}-${formatTime(priority.endSec)} 안쪽이 먼저 볼 후보입니다. 큰 영역에서 듣고 필요하면 보정 예약을 하세요.`;
       } else if (hasEdits && !hasProcessed) {
         $("quickStatus").textContent = `보정 예약 ${hasEdits}개가 있습니다. 실제 반영하려면 보정 만들기를 누르세요.`;
+      } else if (hasProcessed && state.finalCheckStatus === "hold") {
+        $("quickStatus").textContent = "최종점검에서 저장 보류가 나왔습니다. 저장하지 말고 약하게 다시 만들거나 원본을 유지하세요.";
+      } else if (hasProcessed && state.finalCheckStatus === "running") {
+        $("quickStatus").textContent = "최종점검이 진행 중입니다. 결과를 고르면 저장 여부가 정리됩니다.";
       } else if (hasProcessed) {
         $("quickStatus").textContent = "보정본이 준비됐습니다. 비교해서 괜찮으면 바로 저장할 수 있습니다.";
       } else {
@@ -3737,12 +3942,12 @@
       if (labelClip(analysis) === "높음" || analysis.peak >= 0.985) return "깨짐";
       if (segments.some((segment) => segment.risk === "위험")) return "위험 구간";
       if (segments.some((segment) => segment.phaseLabel === "위험") || analysis.phaseLabel === "위험") return "작은 스피커";
-      if (segments.some((segment) => tailHarshRank(segment.tailHarshLabel) >= tailHarshRank("세부 확인")) || tailHarshRank(labelTailHarsh(analysis)) >= tailHarshRank("세부 확인")) return "고역 꼬리";
+      if (segments.some((segment) => tailHarshRank(segment.tailHarshLabel) >= tailHarshRank("세부 확인")) || tailHarshRank(labelTailHarsh(analysis)) >= tailHarshRank("세부 확인")) return "끝의 치치거림";
       if (analysis.monoLabel === "위험") return "모노";
       if (analysis.balanceLabel === "치우침") return "좌우";
       if (labelDynamic(analysis) === "많이 눌림") return "눌림";
-      if (labelMud(analysis) !== "보통") return "먹먹함";
-      if (labelSharp(analysis) !== "보통") return "날카로움";
+      if (labelMud(analysis) !== "보통") return "답답함";
+      if (labelSharp(analysis) !== "보통") return "귀 피로";
       if (analysis.leadSilenceSec >= 2 || analysis.tailSilenceSec >= 2) return "무음";
       return "낮음";
     }
@@ -3819,7 +4024,7 @@
         return {
           preset: "normal",
           label: "기본",
-          reason: "먹먹함, 날카로움, 고역 꼬리 또는 좌우 치우침 후보가 있어 기본 보정부터 비교해볼 만합니다."
+          reason: "답답함, 귀 피로, 끝의 치치거림 또는 좌우 치우침 후보가 있어 기본 보정부터 비교해볼 만합니다."
         };
       }
       return {
@@ -3933,8 +4138,8 @@
       plan.logs.forEach((item) => logs.push(item));
       if (applyFade) logs.push("시작/끝에 짧은 페이드 인/아웃을 적용했습니다.");
       if (dbNumber(after.peak) < dbNumber(before.peak) - 1) logs.push("튀는 최대 소리 여유가 늘었습니다.");
-      if (labelMud(after) !== labelMud(before)) logs.push(`먹먹함 판정이 ${labelMud(before)}에서 ${labelMud(after)}로 바뀌었습니다.`);
-      if (labelSharp(after) !== labelSharp(before)) logs.push(`날카로움 판정이 ${labelSharp(before)}에서 ${labelSharp(after)}로 바뀌었습니다.`);
+      if (labelMud(after) !== labelMud(before)) logs.push(`답답함 신호가 ${labelMud(before)}에서 ${labelMud(after)}로 바뀌었습니다.`);
+      if (labelSharp(after) !== labelSharp(before)) logs.push(`귀 피로 신호가 ${labelSharp(before)}에서 ${labelSharp(after)}로 바뀌었습니다.`);
       return logs;
     }
 
@@ -4203,8 +4408,8 @@
 
       if (plan.mudCut < -0.2) logsPush(plan, "저음/저중역 뭉침 후보를 줄였습니다.");
       if (plan.clarityBoost > 0.2) logsPush(plan, "보컬과 중심 악기가 덜 묻히도록 선명도를 조금 보강했습니다.");
-      if (plan.deharshCut < -0.2 || plan.airGain < -0.2) logsPush(plan, "귀가 피곤한 고역 후보를 부드럽게 눌렀습니다.");
-      if (tailHarsh !== "낮음") logsPush(plan, "큰 음 끝의 치치거림 후보를 줄이도록 고역 꼬리를 보수적으로 눌렀습니다.");
+      if (plan.deharshCut < -0.2 || plan.airGain < -0.2) logsPush(plan, "귀가 피곤한 높은 소리 후보를 부드럽게 눌렀습니다.");
+      if (tailHarsh !== "낮음") logsPush(plan, "큰 음 끝의 치치거림 후보를 줄이도록 끝부분을 보수적으로 눌렀습니다.");
       if (plan.width > 1.01) {
         logsPush(plan, "모노 손실이 낮은 파일이라 스테레오 폭을 아주 조금 넓혔습니다.");
       } else if (plan.width < 0.99) {
@@ -4631,10 +4836,10 @@
       $("peakHelp").textContent = "가장 큰 순간이 얼마나 0 dB에 가까운지 봅니다.";
       $("rmsHelp").textContent = "노래 전체가 체감상 어느 정도 크게 들릴지 봅니다.";
       $("clipHelp").textContent = "높으면 소리가 깨질 수 있어 더 키우면 안 됩니다.";
-      $("dynamicHelp").textContent = "소리의 숨 쉴 공간입니다. 너무 낮으면 이미 눌린 소리입니다.";
-      $("mudHelp").textContent = "저역/저중역이 많으면 보컬과 악기가 답답해질 수 있습니다.";
-      $("sharpHelp").textContent = "고역이 많으면 귀가 피곤하거나 치찰음이 튈 수 있습니다.";
-      $("tailHarshHelp").textContent = "큰 음 끝에 치치거리는 잔여음이 남는지 봅니다.";
+      $("dynamicHelp").textContent = "작은 소리와 큰 소리의 차이입니다. 너무 낮으면 꽉 막혀 들릴 수 있습니다.";
+      $("mudHelp").textContent = "낮은 소리가 뭉치면 보컬과 악기가 흐릿하게 들릴 수 있습니다.";
+      $("sharpHelp").textContent = "높은 소리가 많으면 귀가 따갑거나 오래 듣기 피곤할 수 있습니다.";
+      $("tailHarshHelp").textContent = "큰 음이 끝날 때 얇고 거친 소리가 남는지 봅니다.";
       $("balanceHelp").textContent = "왼쪽/오른쪽 중 한쪽이 과하게 큰지 봅니다.";
       $("monoHelp").textContent = "스테레오를 하나로 합쳤을 때 소리가 크게 줄어드는지 봅니다.";
       $("phaseHelp").textContent = "좌우가 서로 지워져 작은 스피커에서 힘이 빠질 위험을 봅니다.";
@@ -4730,6 +4935,7 @@
         const processedSegments = analyzeSegments(state.processedBuffer);
         updateResultVerdict(state.analysis, processedAnalysis, state.segments, processedSegments);
         updateQualityJudgment(state.analysis, processedAnalysis, state.segments, processedSegments);
+        updateSaveFlowGuide(state.analysis, processedAnalysis, state.segments, processedSegments);
         prepareFinalCheck(processedSegments);
         updateSaveChecklist(state.analysis, processedAnalysis, processedSegments);
         updateProcessedSoundExplanation(processedAnalysis, processedSegments);
@@ -4759,6 +4965,19 @@
     $("saveBtn").addEventListener("click", () => {
       if (!state.processedBuffer) {
         $("processNote").textContent = "먼저 추천 보정을 만들어야 저장할 수 있습니다.";
+        return;
+      }
+      if (state.finalCheckStatus === "running") {
+        $("processNote").textContent = "최종점검이 진행 중입니다. 결과를 먼저 고른 뒤 저장하세요.";
+        selectView("result");
+        return;
+      }
+      if (state.finalCheckStatus === "hold") {
+        $("processNote").textContent = "최종점검에서 저장 보류가 나왔습니다. 저장하지 말고 약하게 다시 만들거나 원본을 유지하세요.";
+        document.querySelectorAll("[data-save-hold-note]").forEach((item) => item.remove());
+        $("saveChecklistList").insertAdjacentHTML("beforeend", '<li class="caution" data-save-hold-note>최종점검 보류 상태라 저장을 막았습니다. 다시 만들거나 원본을 유지하세요.</li>');
+        selectView("result");
+        updateQuickWorkflow();
         return;
       }
       const wav = encodeWav(state.processedBuffer);
