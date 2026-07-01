@@ -5,6 +5,7 @@
 *.flac
 *.zip
 *.tmp
+PRODUCTION_LOG.md
+PRODUCTION_MAP.md
 Thumbs.db
 .DS_Store
-

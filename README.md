@@ -27,6 +27,15 @@ No server, Python, Node.js, account, API key, or internet connection is required
 7. In the final check, choose one result for each segment: processed is OK, uncomfortable, or original is better.
 8. Save only when the app shows a save candidate or final pass.
 
+## Optional Genre Workflow
+
+If you want a style-specific pass, open the Genre tab after loading a file.
+
+1. Choose a genre such as vocal ballad, rock/band, acoustic, dance/EDM, or hip-hop/R&B.
+2. Keep `pre-clean first` enabled for a first pass from the original file.
+3. Start with the normal strength, then try genre emphasis only when the result still feels too dull or buried.
+4. Avoid repeatedly processing an already processed export.
+
 ## Save Decision Flow
 
 The difference may sound subtle on ordinary headphones or speakers. This tool is meant to reduce risk, not make a dramatic mastering change.
@@ -49,7 +58,7 @@ The difference may sound subtle on ordinary headphones or speakers. This tool is
 ## What It Does
 
 - Loads an audio file locally in the browser
-- Splits the app into Main, Settings, Section Check, Result, Compare, and Explanation tabs
+- Splits the app into Main, Settings, Section Check, Result, Compare, Genre, Sound Character, and Explanation tabs
 - Shows basic safety checks such as peak, loudness, clipping risk, muddiness, tiring highs, high-frequency note tails, stereo balance, mono risk, and silence
 - Checks small-speaker risk from stereo/phase behavior
 - Marks sections to review directly on the waveform
@@ -65,6 +74,7 @@ The difference may sound subtle on ordinary headphones or speakers. This tool is
   - reset the section fix
   - automatic smoothing before and after the section
 - Applies conservative correction presets
+- Offers a separate genre-processing path with an optional pre-clean pass
 - Offers beginner-friendly goals:
   - Auto
   - Vocal clarity
@@ -73,6 +83,7 @@ The difference may sound subtle on ordinary headphones or speakers. This tool is
   - Reduce smeared reverb
   - Safer separation
 - Compares original and processed audio
+- Shows beginner-readable sound-character hints such as space, center, low-end weight, muddiness, high fatigue, and energy movement
 - Provides a final listening check before saving
 - Prevents accidental saving after a final-check hold result
 - Explains the original and processed sound in plain language from local analysis values

@@ -152,6 +152,45 @@
     .explain-card p { margin: 0 0 10px; color: var(--muted); }
     .explain-card ul { margin: 0; padding-left: 18px; }
     .explain-card li { margin: 7px 0; }
+    .vibe-summary {
+      border: 1px solid #cfe0ff;
+      border-radius: 8px;
+      padding: 14px;
+      margin-bottom: 12px;
+      background: #f7faff;
+    }
+    .vibe-summary strong {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+    .vibe-summary p { margin: 0; color: #344054; }
+    .vibe-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .vibe-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fbfcfe;
+    }
+    .vibe-card strong {
+      display: block;
+      font-size: 20px;
+      line-height: 1.2;
+      margin-bottom: 4px;
+    }
+    .vibe-card span {
+      display: block;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .vibe-card p { margin: 0; color: #344054; }
+    .vibe-card.warn { border-color: #f0d28c; background: #fffaf0; }
+    .vibe-card.bad { border-color: #f3b6b5; background: #fff5f5; }
     .score-row {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -533,21 +572,24 @@
     }
     .preset { display: flex; flex-wrap: wrap; gap: 8px; }
     .preset button.active { background: var(--accent-soft); border-color: #9bcbb9; color: var(--accent); }
-    .goal-box {
+    .goal-box, .genre-box {
       margin-top: 14px;
       padding: 14px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fbfcfe;
     }
-    .goal-box strong { display: block; margin-bottom: 6px; }
-    .goal-box p { margin: 0 0 12px; color: var(--muted); }
-    .goal-grid {
+    .goal-box strong, .genre-box strong { display: block; margin-bottom: 6px; }
+    .goal-box p, .genre-box p { margin: 0 0 12px; color: var(--muted); }
+    .goal-grid, .genre-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 8px;
     }
-    .goal-grid button {
+    .genre-grid {
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    }
+    .goal-grid button, .genre-grid button {
       min-height: 68px;
       flex-direction: column;
       gap: 4px;
@@ -558,21 +600,35 @@
       white-space: normal;
       word-break: keep-all;
     }
-    .goal-grid small {
+    .genre-grid button {
+      min-height: 78px;
+    }
+    .goal-grid small, .genre-grid small {
       display: block;
       color: var(--muted);
       font-size: 12px;
       font-weight: 700;
       line-height: 1.25;
     }
-    .goal-grid button.active { background: var(--accent-soft); border-color: #9bcbb9; color: var(--accent); }
-    .goal-grid button.active small { color: var(--accent); }
-    .goal-group-label {
+    .goal-grid button.active, .genre-grid button.active { background: var(--accent-soft); border-color: #9bcbb9; color: var(--accent); }
+    .goal-grid button.active small, .genre-grid button.active small { color: var(--accent); }
+    .goal-group-label, .genre-group-label {
       grid-column: 1 / -1;
       margin-top: 4px;
       color: var(--muted);
       font-size: 12px;
       font-weight: 800;
+    }
+    .genre-strength {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .genre-strength button.active {
+      background: var(--accent-soft);
+      border-color: #9bcbb9;
+      color: var(--accent);
     }
     .option-row {
       display: flex;
@@ -589,6 +645,40 @@
       padding: 9px 12px;
       background: #fbfcfe;
       font-weight: 700;
+    }
+    .genre-preclean-row {
+      align-items: center;
+      border: 1px solid #d6e1dc;
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #fbfdfc;
+    }
+    .genre-preclean-row .option {
+      margin: 0;
+      background: #fff;
+    }
+    .genre-preclean-state {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 6px 10px;
+      border: 1px solid #d7e4f5;
+      border-radius: 6px;
+      background: #f8fbff;
+      color: #344054;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .genre-preclean-state.active {
+      border-color: #9bcbb9;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .genre-preclean-help {
+      flex-basis: 100%;
+      margin: 0;
+      color: #475467;
+      font-size: 13px;
     }
     .ab-panel {
       border: 1px solid var(--line);
@@ -707,6 +797,188 @@
     }
     .verdict-card.warn strong { background: var(--warn-soft); color: var(--warn); }
     .verdict-card.bad strong { background: #fee4e2; color: var(--bad); }
+    .at-a-glance {
+      border: 1px solid #cfe0ff;
+      border-radius: 8px;
+      padding: 14px;
+      margin: 12px 0;
+      background: #f8fbff;
+    }
+    .at-a-glance.warn {
+      border-color: #f0d28c;
+      background: #fffaf0;
+    }
+    .at-a-glance.bad {
+      border-color: #f3b6b5;
+      background: #fff7f7;
+    }
+    .at-a-glance.good {
+      border-color: #b8dec7;
+      background: #f7fcf9;
+    }
+    .glance-main {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+    }
+    .glance-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .at-a-glance.warn .glance-badge { background: var(--warn-soft); color: var(--warn); }
+    .at-a-glance.bad .glance-badge { background: #fee4e2; color: var(--bad); }
+    .at-a-glance.good .glance-badge { background: #dcfce7; color: #166534; }
+    .glance-main strong {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    .glance-main p {
+      margin: 0;
+      color: #344054;
+      line-height: 1.55;
+    }
+    .glance-checks {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .glance-check {
+      min-height: 78px;
+      border: 1px solid #d7e4f5;
+      border-radius: 8px;
+      padding: 10px;
+      background: #fff;
+    }
+    .glance-check strong {
+      display: block;
+      margin-bottom: 6px;
+      color: #344054;
+      font-size: 13px;
+    }
+    .glance-check span {
+      display: block;
+      color: #475467;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+    .glance-check.ok {
+      border-color: #b8dec7;
+      background: #f7fcf9;
+    }
+    .glance-check.ok span { color: #166534; }
+    .glance-check.warn {
+      border-color: #f0d28c;
+      background: #fffaf0;
+    }
+    .glance-check.warn span { color: var(--warn); }
+    .glance-check.bad {
+      border-color: #f3b6b5;
+      background: #fff7f7;
+    }
+    .glance-check.bad span { color: var(--bad); }
+    .loudness-standard {
+      border: 1px solid #cfe0ff;
+      border-radius: 8px;
+      padding: 14px;
+      margin: 12px 0;
+      background: #fbfcfe;
+    }
+    .loudness-standard.warn {
+      border-color: #f0d28c;
+      background: #fffaf0;
+    }
+    .loudness-standard.bad {
+      border-color: #f3b6b5;
+      background: #fff7f7;
+    }
+    .loudness-standard.good {
+      border-color: #b8dec7;
+      background: #f7fcf9;
+    }
+    .loudness-standard-main {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+    }
+    .loudness-standard-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .loudness-standard.warn .loudness-standard-badge { background: var(--warn-soft); color: var(--warn); }
+    .loudness-standard.bad .loudness-standard-badge { background: #fee4e2; color: var(--bad); }
+    .loudness-standard.good .loudness-standard-badge { background: #dcfce7; color: #166534; }
+    .loudness-standard-main strong {
+      display: block;
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    .loudness-standard-main p {
+      margin: 0;
+      color: #344054;
+      line-height: 1.55;
+    }
+    .loudness-standard-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .loudness-standard-item {
+      min-height: 118px;
+      border: 1px solid #d7e4f5;
+      border-radius: 8px;
+      padding: 10px;
+      background: #fff;
+    }
+    .loudness-standard-item strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #101828;
+      font-size: 20px;
+    }
+    .loudness-standard-item span {
+      display: block;
+      color: #344054;
+      font-weight: 900;
+      margin-bottom: 6px;
+    }
+    .loudness-standard-item small {
+      display: block;
+      color: #667085;
+      line-height: 1.45;
+    }
+    .loudness-standard-item.ok {
+      border-color: #b8dec7;
+      background: #f7fcf9;
+    }
+    .loudness-standard-item.warn {
+      border-color: #f0d28c;
+      background: #fffaf0;
+    }
+    .loudness-standard-item.bad {
+      border-color: #f3b6b5;
+      background: #fff7f7;
+    }
     .quality-board {
       border: 1px solid #cfe0ff;
       border-radius: 8px;
@@ -988,6 +1260,11 @@
       section { overflow: hidden; }
       .grid, .two, .score-row { grid-template-columns: 1fr; }
       .explain-grid { grid-template-columns: 1fr; }
+      .vibe-grid { grid-template-columns: 1fr; }
+      .glance-main { grid-template-columns: 1fr; }
+      .glance-checks { grid-template-columns: 1fr; }
+      .loudness-standard-main { grid-template-columns: 1fr; }
+      .loudness-standard-grid { grid-template-columns: 1fr; }
       .quality-main { grid-template-columns: 1fr; }
       .quality-lanes { grid-template-columns: 1fr; }
       .save-flow-main { grid-template-columns: 1fr; }
@@ -996,7 +1273,7 @@
       .final-check-head .actions { margin-top: 10px; }
       .final-check-current { grid-template-columns: 1fr; }
       .final-check-now { width: 100%; white-space: normal; }
-      .goal-grid { grid-template-columns: 1fr; }
+      .goal-grid, .genre-grid { grid-template-columns: 1fr; }
       .view-tabs {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1049,9 +1326,11 @@
     <nav class="view-tabs" aria-label="화면 선택">
       <button class="tab-button active" data-tab="main">메인</button>
       <button class="tab-button" data-tab="settings">설정</button>
+      <button class="tab-button" data-tab="genre">장르</button>
       <button class="tab-button" data-tab="sections">구간 확인</button>
       <button class="tab-button" data-tab="result">보정 결과</button>
       <button class="tab-button" data-tab="compare">비교</button>
+      <button class="tab-button" data-tab="vibe">성격</button>
       <button class="tab-button" data-tab="explain">해설</button>
     </nav>
 
@@ -1095,6 +1374,9 @@
       <div class="grid">
         <div id="peakMetric" class="metric"><strong id="peakValue">-</strong><span>최대 소리</span><small id="peakHelp">가장 큰 순간이 얼마나 0 dB에 가까운지 봅니다.</small></div>
         <div id="rmsMetric" class="metric"><strong id="rmsValue">-</strong><span>평균 소리</span><small id="rmsHelp">노래 전체가 체감상 어느 정도 크게 들릴지 봅니다.</small></div>
+        <div id="lufsMetric" class="metric"><strong id="lufsValue">-</strong><span>체감 음량</span><small id="lufsHelp">LUFS에 가까운 앱 추정값입니다. 전문 계측기 값과 완전히 같지는 않습니다.</small></div>
+        <div id="truePeakMetric" class="metric"><strong id="truePeakValue">-</strong><span>깨짐 여유</span><small id="truePeakHelp">0 dB에 너무 가까우면 저장본에서 거칠게 깨질 수 있습니다.</small></div>
+        <div id="lraMetric" class="metric"><strong id="lraValue">-</strong><span>크기 움직임</span><small id="lraHelp">곡 안에서 크고 작은 흐름이 얼마나 남아 있는지 봅니다.</small></div>
         <div id="clipMetric" class="metric"><strong id="clipValue">-</strong><span>찢어짐 위험</span><small id="clipHelp">높으면 소리가 깨질 수 있어 더 키우면 안 됩니다.</small></div>
         <div id="dynamicMetric" class="metric"><strong id="dynamicValue">-</strong><span>숨 쉴 공간</span><small id="dynamicHelp">작은 소리와 큰 소리의 차이입니다. 너무 낮으면 꽉 막혀 들릴 수 있습니다.</small></div>
         <div id="mudMetric" class="metric"><strong id="mudValue">-</strong><span>답답함</span><small id="mudHelp">낮은 소리가 뭉치면 보컬과 악기가 흐릿하게 들릴 수 있습니다.</small></div>
@@ -1223,11 +1505,100 @@
       <p id="processNote" class="status">과한 음압보다 안전한 비교본을 우선합니다.</p>
     </section>
 
+    <section data-view="genre">
+      <h2>장르별 보정</h2>
+      <div class="diagnosis">
+        <strong>기존 보정과 별도로 쓰는 메뉴</strong>
+        <p>여기서 만든 보정본은 설정 탭의 소리 개선 목표와 섞지 않고, 선택한 장르 성향만 기준으로 만듭니다.</p>
+      </div>
+      <div class="genre-box">
+        <strong>장르 선택</strong>
+        <p id="genreHelp">장르를 고르면 어떤 소리를 우선 살리고 줄일지 보여줍니다.</p>
+        <div class="genre-grid">
+          <span class="genre-group-label">대중 음악</span>
+          <button data-genre="popRadio" class="active">대중/라디오<br><small>무난하고 선명하게</small></button>
+          <button data-genre="vocalBallad">보컬/발라드<br><small>목소리 중심</small></button>
+          <button data-genre="rockBand">록/밴드<br><small>힘과 밀도 유지</small></button>
+          <span class="genre-group-label">비트와 저음</span>
+          <button data-genre="danceEdm">댄스/EDM<br><small>저음과 밝기 유지</small></button>
+          <button data-genre="hiphopRnb">힙합/R&amp;B<br><small>저음과 보컬 균형</small></button>
+          <span class="genre-group-label">자연스러운 계열</span>
+          <button data-genre="acousticFolk">어쿠스틱<br><small>자연스럽고 덜 피곤하게</small></button>
+          <button data-genre="worshipCcm">CCM/워십<br><small>공간감은 두고 말소리 정리</small></button>
+          <button data-genre="jazzSoul">재즈/소울<br><small>따뜻함 유지</small></button>
+          <span class="genre-group-label">큰 스케일</span>
+          <button data-genre="cinematicEpic">시네마틱<br><small>웅장함 유지</small></button>
+        </div>
+      </div>
+      <div class="genre-box">
+        <strong>장르 보정 방향</strong>
+        <p>처음에는 기본이 안전합니다. 장르 강조는 더 세게 누르는 뜻이 아니라, 선택한 장르의 성격을 더 드러내는 쪽입니다.</p>
+        <div class="genre-strength">
+          <button data-genre-preset="light">약하게</button>
+          <button data-genre-preset="normal" class="active">기본</button>
+          <button data-genre-preset="strong">장르 강조</button>
+        </div>
+      </div>
+      <div class="option-row genre-preclean-row">
+        <label class="option"><input id="genrePreCleanToggle" type="checkbox"> 먼저 안전 정리</label>
+        <span id="genrePreCleanState" class="genre-preclean-state">장르만 적용</span>
+        <p id="genrePreCleanHelp" class="genre-preclean-help">켜면 먹먹함, 귀 피로, 과한 피크 후보를 약하게 정리한 뒤 장르 성격을 한 번에 살립니다.</p>
+      </div>
+      <div class="actions">
+        <button id="genreProcessBtn" class="primary" disabled>선택한 장르로 보정 만들기</button>
+        <button id="genreCompareBtn" disabled>비교로 이동</button>
+        <button id="genreSaveBtn" class="download" disabled>장르 보정본 저장</button>
+      </div>
+      <p id="genreNote" class="status">파일을 넣고 장르를 고르면 별도 장르 보정본을 만들 수 있습니다.</p>
+    </section>
+
     <section data-view="result">
       <h2>보정 결과</h2>
       <div id="afterSummary" class="diagnosis">
         <strong>보정 결과 요약</strong>
         <p>추천 보정을 만들면 원본과 보정본의 수치 차이를 보여줍니다.</p>
+      </div>
+      <div id="atAGlanceBox" class="at-a-glance">
+        <div class="glance-main">
+          <span id="atAGlanceBadge" class="glance-badge">대기</span>
+          <div>
+            <strong id="atAGlanceHeadline">저장 전 한눈에 보기</strong>
+            <p id="atAGlanceSummary">보정본을 만들면 저장해도 되는지 먼저 큰 결론으로 보여줍니다.</p>
+          </div>
+        </div>
+        <div class="glance-checks" aria-label="저장 전 확인 요약">
+          <div id="glancePeak" class="glance-check"><strong>최대 소리</strong><span>대기</span></div>
+          <div id="glanceMud" class="glance-check"><strong>답답함</strong><span>대기</span></div>
+          <div id="glanceFatigue" class="glance-check"><strong>귀 피로</strong><span>대기</span></div>
+          <div id="glanceMovement" class="glance-check"><strong>볼륨 움직임</strong><span>대기</span></div>
+          <div id="glanceSpeaker" class="glance-check"><strong>작은 스피커</strong><span>대기</span></div>
+        </div>
+      </div>
+      <div id="loudnessStandardBox" class="loudness-standard">
+        <div class="loudness-standard-main">
+          <span id="loudnessStandardBadge" class="loudness-standard-badge">대기</span>
+          <div>
+            <strong>음압 기준 보기</strong>
+            <p id="loudnessStandardSummary">보정본을 만들면 체감 음량, 깨짐 여유, 크기 움직임을 저장 전 기준으로 풀어줍니다.</p>
+          </div>
+        </div>
+        <div class="loudness-standard-grid" aria-label="음압 기준 요약">
+          <div id="loudnessLufsCard" class="loudness-standard-item">
+            <strong id="resultLufsValue">-</strong>
+            <span>체감 음량</span>
+            <small id="resultLufsHelp">원본과 보정본의 크기 착시를 확인합니다.</small>
+          </div>
+          <div id="loudnessTruePeakCard" class="loudness-standard-item">
+            <strong id="resultTruePeakValue">-</strong>
+            <span>깨짐 여유</span>
+            <small id="resultTruePeakHelp">저장본이 0 dB 끝까지 차는지 확인합니다.</small>
+          </div>
+          <div id="loudnessLraCard" class="loudness-standard-item">
+            <strong id="resultLraValue">-</strong>
+            <span>크기 움직임</span>
+            <small id="resultLraHelp">너무 눌렸는지, 너무 출렁이는지 확인합니다.</small>
+          </div>
+        </div>
       </div>
       <div id="resultVerdict" class="verdict-card">
         <strong id="resultVerdictLabel">대기</strong>
@@ -1319,6 +1690,9 @@
         <tbody>
           <tr><td>최대 소리</td><td id="beforePeak">-</td><td id="afterPeak">-</td><td id="peakDelta">-</td></tr>
           <tr><td>평균 소리</td><td id="beforeRms">-</td><td id="afterRms">-</td><td id="rmsDelta">-</td></tr>
+          <tr><td>체감 음량</td><td id="beforeLufs">-</td><td id="afterLufs">-</td><td id="lufsDelta">-</td></tr>
+          <tr><td>깨짐 여유</td><td id="beforeTruePeak">-</td><td id="afterTruePeak">-</td><td id="truePeakDelta">-</td></tr>
+          <tr><td>크기 움직임</td><td id="beforeLra">-</td><td id="afterLra">-</td><td id="lraDelta">-</td></tr>
           <tr><td>숨 쉴 공간</td><td id="beforeDynamic">-</td><td id="afterDynamic">-</td><td id="dynamicDelta">-</td></tr>
           <tr><td>답답함</td><td id="beforeMud">-</td><td id="afterMud">-</td><td id="mudDelta">-</td></tr>
           <tr><td>귀 피로</td><td id="beforeSharp">-</td><td id="afterSharp">-</td><td id="sharpDelta">-</td></tr>
@@ -1390,6 +1764,73 @@
       </ul>
     </section>
 
+    <section data-view="vibe">
+      <h2>사운드 성격</h2>
+      <div class="diagnosis">
+        <strong>분위기 단정이 아니라 소리 성향 검사</strong>
+        <p>좋은 곡인지 판단하지 않고, 분석값으로 들릴 가능성이 큰 성격만 쉬운 말로 정리합니다.</p>
+      </div>
+      <div id="vibeSummary" class="vibe-summary">
+        <strong id="vibeSummaryTitle">아직 분석 전입니다.</strong>
+        <p id="vibeSummaryText">파일을 넣고 자동 점검을 누르면 공간감, 중심감, 저역, 고역, 후렴 에너지 성향을 보여줍니다.</p>
+      </div>
+      <div class="vibe-grid" aria-label="사운드 성격 요약">
+        <article id="vibeSpaceCard" class="vibe-card">
+          <strong id="vibeSpaceValue">-</strong>
+          <span>공간감</span>
+          <p id="vibeSpaceHelp">좌우가 넓은지, 작은 스피커 확인이 필요한지 봅니다.</p>
+        </article>
+        <article id="vibeCenterCard" class="vibe-card">
+          <strong id="vibeCenterValue">-</strong>
+          <span>중심 소리</span>
+          <p id="vibeCenterHelp">보컬과 중심 악기가 앞으로 나올 가능성을 봅니다.</p>
+        </article>
+        <article id="vibeLowCard" class="vibe-card">
+          <strong id="vibeLowValue">-</strong>
+          <span>저역 무게</span>
+          <p id="vibeLowHelp">저음이 가벼운지, 무거운지 봅니다.</p>
+        </article>
+        <article id="vibeMudCard" class="vibe-card">
+          <strong id="vibeMudValue">-</strong>
+          <span>먹먹함</span>
+          <p id="vibeMudHelp">낮은 소리가 뭉쳐 흐려질 가능성을 봅니다.</p>
+        </article>
+        <article id="vibeHighCard" class="vibe-card">
+          <strong id="vibeHighValue">-</strong>
+          <span>고역 피로</span>
+          <p id="vibeHighHelp">치치거림이나 높은 소리 피로 후보를 봅니다.</p>
+        </article>
+        <article id="vibeLiftCard" class="vibe-card">
+          <strong id="vibeLiftValue">-</strong>
+          <span>후렴 에너지</span>
+          <p id="vibeLiftHelp">조용한 부분과 큰 부분의 차이로 후렴이 열리는 느낌을 근사합니다.</p>
+        </article>
+      </div>
+      <div class="explain-grid">
+        <article class="explain-card">
+          <h3>원본 성격</h3>
+          <p id="vibeOriginalSummary">자동 점검 후 표시됩니다.</p>
+          <ul id="vibeOriginalList">
+            <li>아직 파일을 확인하지 않았습니다.</li>
+          </ul>
+        </article>
+        <article class="explain-card">
+          <h3>보정본 성격</h3>
+          <p id="vibeProcessedSummary">보정본을 만들면 표시됩니다.</p>
+          <ul id="vibeProcessedList">
+            <li>아직 보정본이 없습니다.</li>
+          </ul>
+        </article>
+        <article class="explain-card">
+          <h3>바뀐 점</h3>
+          <p id="vibeChangeSummary">원본과 보정본을 비교해 성격 변화만 정리합니다.</p>
+          <ul id="vibeChangeList">
+            <li>보정본을 만든 뒤 비교할 수 있습니다.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
     <section data-view="explain">
       <h2>사운드 해설</h2>
       <div class="explain-grid">
@@ -1429,8 +1870,12 @@
       fileName: "processed",
       preset: "light",
       goal: "auto",
+      genre: "popRadio",
+      genrePreset: "normal",
+      genrePreClean: false,
       analysis: null,
       segments: [],
+      processedSegments: [],
       segmentAreas: [],
       segmentEdits: [],
       selectedSegmentIndex: null,
@@ -1455,10 +1900,66 @@
       finalCheckStatus: "idle"
     };
 
+    const LUFS_ESTIMATE_OFFSET = 2.8;
+
     const presets = {
       light: { highpass: 25, lowShelf: -0.8, highShelf: -0.5, compressorRatio: 1.6, driveGain: 0.96, rmsLift: 1.0, maxGain: 1.04, ceiling: 0.86 },
       normal: { highpass: 35, lowShelf: -1.4, highShelf: -0.9, compressorRatio: 2.2, driveGain: 0.92, rmsLift: 1.03, maxGain: 1.08, ceiling: 0.84 },
       strong: { highpass: 45, lowShelf: -2.2, highShelf: -1.4, compressorRatio: 3.0, driveGain: 0.88, rmsLift: 1.06, maxGain: 1.12, ceiling: 0.82 }
+    };
+
+    const genrePresets = {
+      light: {
+        highpass: 18,
+        lowShelf: -0.05,
+        highShelf: -0.12,
+        compressorThreshold: -11,
+        compressorKnee: 24,
+        compressorRatio: 1.18,
+        compressorAttack: 0.012,
+        compressorRelease: 0.24,
+        driveGain: 0.995,
+        rmsLift: 1.0,
+        maxGain: 1.015,
+        ceiling: 0.86,
+        limiterCurve: 1.22
+      },
+      normal: {
+        highpass: 22,
+        lowShelf: -0.18,
+        highShelf: -0.22,
+        compressorThreshold: -12,
+        compressorKnee: 22,
+        compressorRatio: 1.35,
+        compressorAttack: 0.01,
+        compressorRelease: 0.22,
+        driveGain: 0.985,
+        rmsLift: 1.0,
+        maxGain: 1.025,
+        ceiling: 0.86,
+        limiterCurve: 1.34
+      },
+      strong: {
+        highpass: 26,
+        lowShelf: -0.35,
+        highShelf: -0.24,
+        compressorThreshold: -13,
+        compressorKnee: 20,
+        compressorRatio: 1.52,
+        compressorAttack: 0.009,
+        compressorRelease: 0.2,
+        driveGain: 0.975,
+        rmsLift: 1.015,
+        maxGain: 1.045,
+        ceiling: 0.85,
+        limiterCurve: 1.48
+      }
+    };
+
+    const genrePresetLabels = {
+      light: "장르 약하게",
+      normal: "장르 기본",
+      strong: "장르 강조"
     };
 
     const goals = {
@@ -1488,7 +1989,51 @@
       }
     };
 
+    const genreProfiles = {
+      popRadio: {
+        label: "대중/라디오",
+        help: "보컬과 중심 악기가 앞으로 나오게 하되, 저음과 고음을 과하게 바꾸지 않는 무난한 장르 보정입니다."
+      },
+      vocalBallad: {
+        label: "보컬/발라드",
+        help: "목소리 중심을 흐리지 않게 하고, 귀가 피곤한 고음과 번지는 저중역을 부드럽게 정리합니다."
+      },
+      rockBand: {
+        label: "록/밴드",
+        help: "밴드의 저음 힘은 과하게 키우지 않고, 기타/보컬/드럼 존재감과 거친 고음 균형을 정리합니다."
+      },
+      danceEdm: {
+        label: "댄스/EDM",
+        help: "킥과 베이스의 힘을 지나치게 깎지 않고, 밝기와 공간감을 안전하게 유지합니다."
+      },
+      hiphopRnb: {
+        label: "힙합/R&B",
+        help: "초저역을 과하게 키우지 않고, 베이스 몸통과 보컬/랩 존재감을 함께 지키며 먹먹함을 정리합니다."
+      },
+      acousticFolk: {
+        label: "어쿠스틱",
+        help: "자연스러운 악기 질감을 해치지 않도록 저중역과 고음 피로를 약하게 정리합니다."
+      },
+      worshipCcm: {
+        label: "CCM/워십",
+        help: "공간감은 크게 줄이지 않고, 말소리와 중심 악기가 흐려지는 부분을 정리합니다."
+      },
+      jazzSoul: {
+        label: "재즈/소울",
+        help: "따뜻함과 두께를 유지하면서 과한 먹먹함과 날카로움만 줄입니다."
+      },
+      cinematicEpic: {
+        label: "시네마틱",
+        help: "웅장함과 저역 스케일을 유지하면서 귀 피로와 과한 번짐을 정리합니다."
+      }
+    };
+
     const $ = (id) => document.getElementById(id);
+
+    function setSaveButtonsDisabled(disabled) {
+      $("saveBtn").disabled = disabled;
+      $("genreSaveBtn").disabled = disabled;
+    }
 
     function selectView(viewName) {
       const safeView = document.querySelector(`[data-view="${viewName}"]`) ? viewName : "main";
@@ -1522,6 +2067,56 @@
       return Math.max(min, Math.min(max, value));
     }
 
+    function percentile(sortedValues, ratio) {
+      if (!sortedValues.length) return 0;
+      const index = clamp(ratio, 0, 1) * (sortedValues.length - 1);
+      const low = Math.floor(index);
+      const high = Math.ceil(index);
+      if (low === high) return sortedValues[low];
+      return sortedValues[low] + (sortedValues[high] - sortedValues[low]) * (index - low);
+    }
+
+    function estimateLufsFromRms(rms) {
+      if (!Number.isFinite(rms) || rms <= 0) return -70;
+      return clamp(dbNumber(rms) + LUFS_ESTIMATE_OFFSET, -70, 6);
+    }
+
+    function estimateTruePeak(buffer) {
+      let peak = 0;
+      for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+        const data = buffer.getChannelData(channel);
+        for (let i = 0; i < data.length; i++) {
+          const current = data[i] || 0;
+          const next = i + 1 < data.length ? data[i + 1] || 0 : current;
+          const q1 = current * 0.75 + next * 0.25;
+          const mid = (current + next) * 0.5;
+          const q3 = current * 0.25 + next * 0.75;
+          peak = Math.max(peak, Math.abs(current), Math.abs(q1), Math.abs(mid), Math.abs(q3));
+        }
+      }
+      return Math.min(1.5, peak * 1.01);
+    }
+
+    function estimateLoudnessRange(samples, sampleRate) {
+      if (!samples.length || !sampleRate) return 0;
+      const windowSize = Math.max(1024, Math.floor(sampleRate * 3));
+      const hopSize = Math.max(512, Math.floor(windowSize / 2));
+      const minWindow = Math.max(512, Math.floor(sampleRate * 0.6));
+      const values = [];
+      for (let start = 0; start < samples.length; start += hopSize) {
+        const end = Math.min(samples.length, start + windowSize);
+        if (end - start < minWindow) continue;
+        let sum = 0;
+        for (let i = start; i < end; i++) sum += samples[i] * samples[i];
+        const rms = Math.sqrt(sum / Math.max(1, end - start));
+        const lufs = estimateLufsFromRms(rms);
+        if (lufs > -55) values.push(lufs);
+      }
+      if (values.length < 2) return 0;
+      values.sort((a, b) => a - b);
+      return clamp(percentile(values, 0.95) - percentile(values, 0.1), 0, 30);
+    }
+
     function getMixedSamples(buffer) {
       const length = buffer.length;
       const channels = buffer.numberOfChannels;
@@ -1535,7 +2130,7 @@
       return mixed;
     }
 
-    function computeBasic(buffer) {
+    function computeBasic(buffer, options = {}) {
       const samples = getMixedSamples(buffer);
       let peak = 0;
       let sum = 0;
@@ -1548,7 +2143,12 @@
       }
       const rms = Math.sqrt(sum / Math.max(samples.length, 1));
       const dynamic = 20 * Math.log10(Math.max(peak, 0.000001) / Math.max(rms, 0.000001));
-      return { peak, rms, clipped, clippedRatio: clipped / Math.max(samples.length, 1), dynamic };
+      const base = { peak, rms, clipped, clippedRatio: clipped / Math.max(samples.length, 1), dynamic };
+      if (options.includeLoudness === false) return base;
+      const lufs = estimateLufsFromRms(rms);
+      const truePeak = estimateTruePeak(buffer);
+      const loudnessRange = estimateLoudnessRange(samples, buffer.sampleRate);
+      return { ...base, lufs, truePeak, loudnessRange };
     }
 
     function computeBasicFromSamples(samples, start, end) {
@@ -1786,11 +2386,11 @@
     function getAnalysisForKind(kind) {
       if (kind === "processed") {
         if (state.processedAnalysis) return state.processedAnalysis;
-        if (state.processedBuffer) return computeBasic(getMixedSamples(state.processedBuffer));
+        if (state.processedBuffer) return computeBasic(state.processedBuffer, { includeLoudness: false });
         return null;
       }
       if (state.analysis) return state.analysis;
-      if (state.originalBuffer) return computeBasic(getMixedSamples(state.originalBuffer));
+      if (state.originalBuffer) return computeBasic(state.originalBuffer, { includeLoudness: false });
       return null;
     }
 
@@ -2223,7 +2823,7 @@
       filter.connect(offline.destination);
       source.start();
       const rendered = await offline.startRendering();
-      return computeBasic(rendered).rms;
+      return computeBasic(rendered, { includeLoudness: false }).rms;
     }
 
     async function analyze(buffer) {
@@ -2273,8 +2873,83 @@
       return "짧음";
     }
 
+    function formatLufs(value) {
+      if (!Number.isFinite(value)) return "-";
+      return `${value.toFixed(1)} LUFS`;
+    }
+
+    function formatTruePeak(value) {
+      if (!Number.isFinite(value) || value <= 0) return "-";
+      return `${dbNumber(value).toFixed(1)} dBTP`;
+    }
+
+    function formatLoudnessRange(value) {
+      if (!Number.isFinite(value)) return "-";
+      return `${value.toFixed(1)} LU`;
+    }
+
+    function formatSignedPlain(value, unit) {
+      if (!Number.isFinite(value)) return "-";
+      const sign = value >= 0 ? "+" : "";
+      return `${sign}${value.toFixed(1)} ${unit}`;
+    }
+
+    function truePeakDb(analysis) {
+      return dbNumber(analysis.truePeak);
+    }
+
+    function labelLufs(analysis) {
+      if (!Number.isFinite(analysis.lufs)) return "대기";
+      if (analysis.lufs > -8.5) return "과함";
+      if (analysis.lufs > -11) return "큰 편";
+      if (analysis.lufs < -20) return "작은 편";
+      if (analysis.lufs < -17) return "조금 작음";
+      return "보통";
+    }
+
+    function labelTruePeak(analysis) {
+      const peakDb = truePeakDb(analysis);
+      if (peakDb > -0.5) return "위험";
+      if (peakDb > -1.2) return "주의";
+      if (peakDb <= -2) return "여유";
+      return "보통";
+    }
+
+    function labelLoudnessRange(analysis) {
+      if (!Number.isFinite(analysis.loudnessRange)) return "대기";
+      if (analysis.loudnessRange < 3.5) return "많이 눌림";
+      if (analysis.loudnessRange < 5) return "좁음";
+      if (analysis.loudnessRange > 14) return "출렁임 큼";
+      return "보통";
+    }
+
+    function describeLufsEstimate(analysis) {
+      const label = labelLufs(analysis);
+      if (label === "과함") return "상당히 큰 편입니다. 더 키우기보다 깨짐과 피로감을 먼저 확인하세요.";
+      if (label === "큰 편") return "큰 편입니다. 원본보다 커져서 좋아 보이는 착시를 조심하세요.";
+      if (label === "작은 편") return "작은 편입니다. 다만 깨짐 여유가 있는지 먼저 봐야 합니다.";
+      if (label === "조금 작음") return "조금 작은 편입니다. 필요하면 약한 보정부터 비교하세요.";
+      return "보통 범위입니다. 원본과 비슷한 크기로 비교하면 됩니다.";
+    }
+
+    function describeTruePeakEstimate(analysis) {
+      const label = labelTruePeak(analysis);
+      if (label === "위험") return "0 dB에 너무 가까워 저장본에서 거칠게 깨질 수 있습니다.";
+      if (label === "주의") return "깨짐 여유가 적습니다. 큰 구간을 꼭 들어보세요.";
+      if (label === "여유") return "최대 소리에 비교적 여유가 있습니다.";
+      return "크게 위험하진 않지만 저장 전 큰 구간은 확인하세요.";
+    }
+
+    function describeLoudnessRangeEstimate(analysis) {
+      const label = labelLoudnessRange(analysis);
+      if (label === "많이 눌림") return "작고 큰 흐름이 적어 꽉 막혀 들릴 수 있습니다.";
+      if (label === "좁음") return "크기 변화가 좁은 편입니다. 힘은 있지만 답답할 수 있습니다.";
+      if (label === "출렁임 큼") return "구간별 크기 차이가 큰 편입니다. 갑자기 커지는 부분이 있는지 들어보세요.";
+      return "크기 움직임은 보통 범위입니다.";
+    }
+
     function resetMetricClasses() {
-      ["peakMetric", "rmsMetric", "clipMetric", "dynamicMetric", "mudMetric", "sharpMetric", "tailHarshMetric", "balanceMetric", "monoMetric", "phaseMetric", "leadSilenceMetric", "tailSilenceMetric"].forEach((id) => {
+      ["peakMetric", "rmsMetric", "lufsMetric", "truePeakMetric", "lraMetric", "clipMetric", "dynamicMetric", "mudMetric", "sharpMetric", "tailHarshMetric", "balanceMetric", "monoMetric", "phaseMetric", "leadSilenceMetric", "tailSilenceMetric"].forEach((id) => {
         $(id).className = "metric";
       });
     }
@@ -2369,7 +3044,237 @@
       return `뚜렷하게 튀는 구간은 적습니다. ${recommendation.label} + ${goalLabel}로 비교본을 만들고, 원본 느낌이 죽지 않았는지 확인하세요.`;
     }
 
+    function setGlanceCheck(id, level, text) {
+      const item = $(id);
+      if (!item) return;
+      item.className = `glance-check ${level || ""}`.trim();
+      item.querySelector("span").textContent = text;
+    }
+
+    function resetAtAGlanceSummary() {
+      $("atAGlanceBox").className = "at-a-glance";
+      $("atAGlanceBadge").textContent = "대기";
+      $("atAGlanceHeadline").textContent = "저장 전 한눈에 보기";
+      $("atAGlanceSummary").textContent = "보정본을 만들면 저장해도 되는지 먼저 큰 결론으로 보여줍니다.";
+      ["glancePeak", "glanceMud", "glanceFatigue", "glanceMovement", "glanceSpeaker"].forEach((id) => {
+        setGlanceCheck(id, "", "대기");
+      });
+    }
+
+    function buildAtAGlanceSummary(before, after, beforeSegments, afterSegments) {
+      const beforeScore = state.originalScore ?? computeSafetyScore(before, beforeSegments || []);
+      const afterScore = computeSafetyScore(after, afterSegments || []);
+      const scoreDelta = afterScore - beforeScore;
+      const dbDelta = (newValue, oldValue) => dbNumber(newValue) - dbNumber(oldValue);
+      const safeDelta = (newValue, oldValue) => (
+        Number.isFinite(newValue) && Number.isFinite(oldValue) ? newValue - oldValue : 0
+      );
+      const peakDelta = dbDelta(after.peak, before.peak);
+      const rmsAbsDelta = Math.abs(dbDelta(after.rms, before.rms));
+      const dynamicDelta = safeDelta(after.dynamic, before.dynamic);
+      const mudDelta = safeDelta(after.lowRatio, before.lowRatio);
+      const sharpDelta = safeDelta(after.highRatio, before.highRatio);
+      const clipRisk = labelClip(after) === "높음" || after.peak > 0.99;
+      const afterRisk = getPrimaryRisk(after, afterSegments || []);
+      const priority = firstQualitySegment(afterSegments || []);
+
+      let level = "";
+      let badge = "확인 필요";
+      let headline = "차이가 작습니다.";
+      let summary = "보정본이 원본 느낌을 크게 바꾸지는 않았습니다. 같은 구간에서 불편함이 있는지만 확인하세요.";
+
+      if (clipRisk) {
+        level = "bad";
+        badge = "저장 보류";
+        headline = "지금은 저장하지 마세요.";
+        summary = "최대 소리가 너무 끝까지 차 있어 깨질 수 있습니다. 약하게 다시 만들거나 원본을 유지하세요.";
+      } else if (rmsAbsDelta > 1.5) {
+        level = "warn";
+        badge = "음량 확인";
+        headline = "커져서 좋아 보일 수 있습니다.";
+        summary = "원본과 보정본의 크기 차이가 큽니다. 비교 음량 맞춤을 켜고 같은 구간으로 다시 들어보세요.";
+      } else if (scoreDelta < -4 || peakDelta > 1 || dynamicDelta < -1.5) {
+        level = "warn";
+        badge = "원본도 후보";
+        headline = "보정본이 더 낫다고 단정하기 어렵습니다.";
+        summary = "수치상 원본보다 불리한 신호가 있습니다. 같은 구간을 듣고 불편하면 저장하지 마세요.";
+      } else if (scoreDelta >= 3 && after.peak <= 0.96 && afterRisk === "낮음") {
+        level = "good";
+        badge = "저장 후보";
+        headline = "저장 후보로 볼 수 있습니다.";
+        summary = "큰 악화 신호는 낮습니다. 최종 점검에서 불편함만 없으면 저장 후보입니다.";
+      } else if (scoreDelta >= 3) {
+        level = "good";
+        badge = "개선 후보";
+        headline = "좋아진 신호가 있습니다.";
+        summary = priority
+          ? `${formatTime(priority.startSec)}-${formatTime(priority.endSec)} 구간만 직접 들어보고 결정하세요.`
+          : "저장 전 같은 구간을 원본과 보정본으로 한 번 더 비교하세요.";
+      }
+
+      let peak = { level: "ok", text: "큰 문제 낮음" };
+      if (clipRisk) peak = { level: "bad", text: "저장 보류" };
+      else if (peakDelta > 1) peak = { level: "warn", text: "더 커짐" };
+      else if (peakDelta < -1 || after.peak <= 0.96) peak = { level: "ok", text: "여유 있음" };
+
+      let mud = { level: "", text: "비슷함" };
+      if (mudDelta < -0.08) mud = { level: "ok", text: "줄어듦" };
+      else if (mudDelta > 0.08) mud = { level: "warn", text: "더 답답함" };
+
+      let fatigue = { level: "", text: "비슷함" };
+      if (sharpDelta < -0.08) fatigue = { level: "ok", text: "줄어듦" };
+      else if (sharpDelta > 0.08) fatigue = { level: "warn", text: "더 피곤함" };
+      if (tailHarshRank(labelTailHarsh(after)) >= tailHarshRank("세부 확인")) {
+        fatigue = { level: "warn", text: "끝 소리 확인" };
+      }
+
+      let movement = { level: "", text: "확인 필요" };
+      if (rmsAbsDelta > 1.5) movement = { level: "warn", text: "크기 차이 큼" };
+      else if (dynamicDelta < -1.5) movement = { level: "warn", text: "더 눌림" };
+      else if (Math.abs(dynamicDelta) <= 0.7 && rmsAbsDelta <= 1.0) movement = { level: "ok", text: "원곡과 비슷" };
+      else if (dynamicDelta > 1) movement = { level: "ok", text: "숨통 늘어남" };
+
+      let speaker = { level: "ok", text: "큰 문제 낮음" };
+      if (after.phaseLabel === "위험" || after.monoLabel === "위험") speaker = { level: "bad", text: "힘 빠질 수 있음" };
+      else if (after.phaseLabel === "확인" || after.monoLabel === "확인") speaker = { level: "warn", text: "작은 스피커 확인" };
+
+      return { level, badge, headline, summary, peak, mud, fatigue, movement, speaker };
+    }
+
+    function updateAtAGlanceSummary(before, after, beforeSegments, afterSegments) {
+      const glance = buildAtAGlanceSummary(before, after, beforeSegments, afterSegments);
+      $("atAGlanceBox").className = `at-a-glance ${glance.level}`.trim();
+      $("atAGlanceBadge").textContent = glance.badge;
+      $("atAGlanceHeadline").textContent = glance.headline;
+      $("atAGlanceSummary").textContent = glance.summary;
+      setGlanceCheck("glancePeak", glance.peak.level, glance.peak.text);
+      setGlanceCheck("glanceMud", glance.mud.level, glance.mud.text);
+      setGlanceCheck("glanceFatigue", glance.fatigue.level, glance.fatigue.text);
+      setGlanceCheck("glanceMovement", glance.movement.level, glance.movement.text);
+      setGlanceCheck("glanceSpeaker", glance.speaker.level, glance.speaker.text);
+    }
+
+    function updateAtAGlanceFinalStatus(riskyCount) {
+      $("atAGlanceBox").className = `at-a-glance ${riskyCount ? "warn" : "good"}`;
+      $("atAGlanceBadge").textContent = riskyCount ? "저장 보류" : "최종 통과";
+      $("atAGlanceHeadline").textContent = riskyCount ? "귀로 불편한 구간이 있었습니다." : "저장 후보입니다.";
+      $("atAGlanceSummary").textContent = riskyCount
+        ? "최종점검에서 불편함 또는 원본 우위가 표시됐습니다. 지금 보정본은 저장하지 않는 편이 안전합니다."
+        : "확인한 구간에서 불편함이나 원본 우위가 표시되지 않았습니다. 저장 전 전체 흐름만 한 번 더 들어보세요.";
+    }
+
+    function setLoudnessStandardItem(cardId, level, valueId, value, helpId, help) {
+      $(cardId).className = `loudness-standard-item ${level || ""}`.trim();
+      $(valueId).textContent = value;
+      $(helpId).textContent = help;
+    }
+
+    function resetLoudnessStandard() {
+      $("loudnessStandardBox").className = "loudness-standard";
+      $("loudnessStandardBadge").textContent = "대기";
+      $("loudnessStandardSummary").textContent = "보정본을 만들면 체감 음량, 깨짐 여유, 크기 움직임을 저장 전 기준으로 풀어줍니다.";
+      setLoudnessStandardItem("loudnessLufsCard", "", "resultLufsValue", "-", "resultLufsHelp", "원본과 보정본의 크기 착시를 확인합니다.");
+      setLoudnessStandardItem("loudnessTruePeakCard", "", "resultTruePeakValue", "-", "resultTruePeakHelp", "저장본이 0 dB 끝까지 차는지 확인합니다.");
+      setLoudnessStandardItem("loudnessLraCard", "", "resultLraValue", "-", "resultLraHelp", "너무 눌렸는지, 너무 출렁이는지 확인합니다.");
+    }
+
+    function buildLoudnessStandardSummary(before, after) {
+      const lufsDelta = after.lufs - before.lufs;
+      const lufsAbsDelta = Math.abs(lufsDelta);
+      const peakLabel = labelTruePeak(after);
+      const lufsLabel = labelLufs(after);
+      const rangeLabel = labelLoudnessRange(after);
+
+      if (peakLabel === "위험" || labelClip(after) === "높음") {
+        return {
+          level: "bad",
+          badge: "저장 보류",
+          summary: "깨짐 여유가 너무 적습니다. 지금 보정본은 저장보다 약하게 다시 만들거나 원본을 유지하는 편이 안전합니다."
+        };
+      }
+      if (lufsAbsDelta > 1.5) {
+        return {
+          level: "warn",
+          badge: "크기 확인",
+          summary: "원본과 보정본의 체감 크기 차이가 큽니다. 좋아진 것이 아니라 커져서 좋아 보이는 착시일 수 있습니다."
+        };
+      }
+      if (peakLabel === "주의") {
+        return {
+          level: "warn",
+          badge: "큰 구간 확인",
+          summary: "깨짐 여유가 넉넉하진 않습니다. 후렴이나 가장 큰 구간을 원본과 보정본으로 다시 들어보세요."
+        };
+      }
+      if (lufsLabel === "과함" || rangeLabel === "많이 눌림") {
+        return {
+          level: "warn",
+          badge: "눌림 확인",
+          summary: "음량이 크거나 크기 움직임이 좁아 답답하게 들릴 수 있습니다. 오래 들어도 피곤하지 않은지 확인하세요."
+        };
+      }
+      if (peakLabel === "여유" && lufsAbsDelta <= 1.2) {
+        return {
+          level: "good",
+          badge: "저장 후보",
+          summary: "체감 크기 차이는 크지 않고 깨짐 여유도 있습니다. 최종 청취에서 불편함만 없으면 저장 후보입니다."
+        };
+      }
+      return {
+        level: "",
+        badge: "비교 필요",
+        summary: "수치상 큰 위험은 낮지만, 같은 구간으로 원본과 보정본을 번갈아 듣고 결정하세요."
+      };
+    }
+
+    function updateLoudnessStandard(before, after) {
+      const summary = buildLoudnessStandardSummary(before, after);
+      const lufsDelta = after.lufs - before.lufs;
+      const truePeakDelta = dbNumber(after.truePeak) - dbNumber(before.truePeak);
+      const lraDelta = after.loudnessRange - before.loudnessRange;
+      const truePeakChange = truePeakDelta < -0.5
+        ? "원본보다 0 dB에서 멀어져 깨짐 여유가 늘었습니다."
+        : truePeakDelta > 0.5
+          ? "원본보다 0 dB에 가까워졌습니다. 큰 구간을 들어보세요."
+          : "원본과 깨짐 여유 차이는 크지 않습니다.";
+      const lraChange = Math.abs(lraDelta) <= 1
+        ? "원본과 크기 움직임 차이는 작습니다."
+        : lraDelta > 0
+          ? "구간별 크기 차이가 더 커졌습니다."
+          : "구간별 크기 차이가 더 좁아졌습니다.";
+
+      $("loudnessStandardBox").className = `loudness-standard ${summary.level}`.trim();
+      $("loudnessStandardBadge").textContent = summary.badge;
+      $("loudnessStandardSummary").textContent = summary.summary;
+      setLoudnessStandardItem(
+        "loudnessLufsCard",
+        Math.abs(lufsDelta) > 1.5 || labelLufs(after) === "과함" ? "warn" : "ok",
+        "resultLufsValue",
+        formatLufs(after.lufs),
+        "resultLufsHelp",
+        `${formatSignedPlain(lufsDelta, "LU")} 변화. ${describeLufsEstimate(after)}`
+      );
+      setLoudnessStandardItem(
+        "loudnessTruePeakCard",
+        labelTruePeak(after) === "위험" ? "bad" : labelTruePeak(after) === "주의" ? "warn" : "ok",
+        "resultTruePeakValue",
+        formatTruePeak(after.truePeak),
+        "resultTruePeakHelp",
+        `${truePeakChange} ${describeTruePeakEstimate(after)}`
+      );
+      setLoudnessStandardItem(
+        "loudnessLraCard",
+        labelLoudnessRange(after) === "많이 눌림" || labelLoudnessRange(after) === "출렁임 큼" ? "warn" : "ok",
+        "resultLraValue",
+        formatLoudnessRange(after.loudnessRange),
+        "resultLraHelp",
+        `${lraChange} ${describeLoudnessRangeEstimate(after)}`
+      );
+    }
+
     function resetResultGuidance() {
+      resetAtAGlanceSummary();
+      resetLoudnessStandard();
       $("resultVerdict").className = "verdict-card";
       $("resultVerdictLabel").textContent = "대기";
       $("resultVerdictText").textContent = "보정본을 만들면 저장 전에 어떻게 판단할지 보여줍니다.";
@@ -2763,7 +3668,7 @@
       state.abRepeatEndSec = item.endSec;
       $("finalCheckStartBtn").disabled = true;
       $("finalCheckStopBtn").disabled = false;
-      $("saveBtn").disabled = true;
+      setSaveButtonsDisabled(true);
       setFinalCheckResultButtons(true);
       $("finalCheckStatus").className = "final-check-status";
       $("finalCheckStatus").querySelector("p").textContent = "원본과 보정본이 같은 구간에서 반복됩니다. 듣고 아래 세 버튼 중 하나만 누르세요.";
@@ -2802,7 +3707,7 @@
       state.finalCheckIndex = -1;
       $("finalCheckStartBtn").disabled = false;
       $("finalCheckStopBtn").disabled = true;
-      $("saveBtn").disabled = risky.length ? true : !state.processedBuffer;
+      setSaveButtonsDisabled(risky.length ? true : !state.processedBuffer);
       setFinalCheckResultButtons(false);
       $("finalCheckStatus").className = `final-check-status ${risky.length ? "warn" : "good"}`;
       $("finalCheckStatus").querySelector("p").textContent = risky.length
@@ -2820,6 +3725,7 @@
       $("resultVerdictText").textContent = risky.length
         ? "최종점검에서 불편함 또는 원본이 더 나음이 나왔습니다. 지금 보정본은 저장하지 않는 편이 안전합니다."
         : "최종점검에서 불편한 구간이 표시되지 않았습니다. 저장 후보로 볼 수 있습니다.";
+      updateAtAGlanceFinalStatus(risky.length);
       $("qualityJudgment").className = `quality-board ${risky.length ? "warn" : ""}`.trim();
       $("qualityVerdictPill").textContent = risky.length ? "저장 보류" : "최종 통과";
       $("qualityHeadline").textContent = risky.length ? "귀로 불편한 구간이 있었습니다." : "최종점검 기준 저장 후보입니다.";
@@ -2871,7 +3777,7 @@
       state.finalCheckIndex = -1;
       $("finalCheckStartBtn").disabled = !state.finalCheckItems.length;
       $("finalCheckStopBtn").disabled = true;
-      $("saveBtn").disabled = !state.processedBuffer;
+      setSaveButtonsDisabled(!state.processedBuffer);
       setFinalCheckResultButtons(false);
       $("finalCheckStatus").className = "final-check-status";
       $("finalCheckStatus").querySelector("p").textContent = "최종 점검을 멈췄습니다. 다시 시작하면 첫 구간부터 확인합니다.";
@@ -2971,6 +3877,191 @@
     function resetSoundExplanations() {
       resetOriginalSoundExplanation();
       resetProcessedSoundExplanation();
+    }
+
+    function resetVibeDoctor() {
+      $("vibeSummaryTitle").textContent = "아직 분석 전입니다.";
+      $("vibeSummaryText").textContent = "파일을 넣고 자동 점검을 누르면 공간감, 중심감, 저역, 고역, 후렴 에너지 성향을 보여줍니다.";
+      [
+        ["vibeSpace", "좌우가 넓은지, 작은 스피커 확인이 필요한지 봅니다."],
+        ["vibeCenter", "보컬과 중심 악기가 앞으로 나올 가능성을 봅니다."],
+        ["vibeLow", "저음이 가벼운지, 무거운지 봅니다."],
+        ["vibeMud", "낮은 소리가 뭉쳐 흐려질 가능성을 봅니다."],
+        ["vibeHigh", "치치거림이나 높은 소리 피로 후보를 봅니다."],
+        ["vibeLift", "조용한 부분과 큰 부분의 차이로 후렴이 열리는 느낌을 근사합니다."]
+      ].forEach(([prefix, help]) => {
+        $(`${prefix}Card`).className = "vibe-card";
+        $(`${prefix}Value`).textContent = "-";
+        $(`${prefix}Help`).textContent = help;
+      });
+      $("vibeOriginalSummary").textContent = "자동 점검 후 표시됩니다.";
+      $("vibeProcessedSummary").textContent = "보정본을 만들면 표시됩니다.";
+      $("vibeChangeSummary").textContent = "원본과 보정본을 비교해 성격 변화만 정리합니다.";
+      renderExplanationList("vibeOriginalList", ["아직 파일을 확인하지 않았습니다."]);
+      renderExplanationList("vibeProcessedList", ["아직 보정본이 없습니다."]);
+      renderExplanationList("vibeChangeList", ["보정본을 만든 뒤 비교할 수 있습니다."]);
+    }
+
+    function resetProcessedVibeDoctor() {
+      $("vibeProcessedSummary").textContent = "보정본을 만들면 표시됩니다.";
+      $("vibeChangeSummary").textContent = "원본과 보정본을 비교해 성격 변화만 정리합니다.";
+      renderExplanationList("vibeProcessedList", ["아직 보정본이 없습니다."]);
+      renderExplanationList("vibeChangeList", ["보정본을 만든 뒤 비교할 수 있습니다."]);
+    }
+
+    function setVibeCard(prefix, item) {
+      $(`${prefix}Card`).className = `vibe-card${item.level === "bad" ? " bad" : item.level === "warn" ? " warn" : ""}`;
+      $(`${prefix}Value`).textContent = item.label;
+      $(`${prefix}Help`).textContent = item.help;
+    }
+
+    function percentile(values, percent) {
+      const sorted = values.filter(Number.isFinite).slice().sort((a, b) => a - b);
+      if (!sorted.length) return 0;
+      const index = clamp((sorted.length - 1) * percent, 0, sorted.length - 1);
+      const lower = Math.floor(index);
+      const upper = Math.ceil(index);
+      if (lower === upper) return sorted[lower];
+      return sorted[lower] + (sorted[upper] - sorted[lower]) * (index - lower);
+    }
+
+    function segmentEnergyLift(segments = []) {
+      const values = segments
+        .filter((segment) => segment.risk !== "무음")
+        .map((segment) => dbNumber(segment.rms));
+      if (values.length < 3) return 0;
+      return percentile(values, 0.9) - percentile(values, 0.5);
+    }
+
+    function classifyVibeProfile(analysis, segments = []) {
+      const mud = labelMud(analysis);
+      const sharp = labelSharp(analysis);
+      const tailHarsh = labelTailHarsh(analysis);
+      const dynamic = labelDynamic(analysis);
+      const lift = segmentEnergyLift(segments);
+      const correlation = Number.isFinite(analysis.correlation) ? analysis.correlation : 1;
+
+      const space = (() => {
+        if (analysis.phaseLabel === "위험" || analysis.monoLabel === "위험") {
+          return { label: "넓지만 위험", level: "bad", help: "좌우가 넓게 벌어져 작은 스피커에서 힘이 빠질 수 있습니다." };
+        }
+        if (analysis.phaseLabel === "확인" || analysis.monoLabel === "주의" || correlation < 0.72) {
+          return { label: "넓은 편", level: "warn", help: "공간감은 있지만 휴대폰이나 작은 스피커에서도 확인이 필요합니다." };
+        }
+        if (correlation > 0.92) return { label: "좁은 편", level: "ok", help: "좌우가 크게 벌어지지 않아 중심은 안정적이지만 답답하게 느낄 수도 있습니다." };
+        return { label: "보통", level: "ok", help: "좌우 공간과 중심이 크게 치우치지 않은 편입니다." };
+      })();
+
+      const center = (() => {
+        if (mud === "높음") return { label: "묻힐 수 있음", level: "bad", help: "낮은 소리가 많아 보컬과 중심 악기가 뒤로 물러날 수 있습니다." };
+        if (mud === "주의") return { label: "조금 뒤", level: "warn", help: "중심 소리가 살짝 흐려질 수 있어 같은 구간으로 확인하세요." };
+        if (sharp === "높음") return { label: "앞이 날카로움", level: "warn", help: "중심은 보일 수 있지만 높은 소리가 먼저 튈 수 있습니다." };
+        if (dynamic === "많이 눌림") return { label: "붙어 있음", level: "warn", help: "전체가 꽉 차서 악기와 보컬이 서로 붙어 들릴 수 있습니다." };
+        return { label: "잘 보임", level: "ok", help: "보컬과 중심 악기가 크게 묻힐 신호는 낮습니다." };
+      })();
+
+      const low = (() => {
+        if (analysis.lowRatio > 1.8) return { label: "무거움", level: "warn", help: "저역 무게가 커서 큰 스피커에서는 두껍고, 작은 장비에서는 답답할 수 있습니다." };
+        if (analysis.lowRatio > 1.25) return { label: "약간 무거움", level: "ok", help: "저역이 어느 정도 받쳐주는 편입니다. 과한지 같은 구간으로 들어보세요." };
+        if (analysis.lowRatio < 0.72) return { label: "가벼움", level: "warn", help: "저역 받침이 적어 힘이 덜 느껴질 수 있습니다." };
+        return { label: "보통", level: "ok", help: "저역 무게는 크게 치우치지 않았습니다." };
+      })();
+
+      const mudItem = (() => {
+        if (mud === "높음") return { label: "높음", level: "bad", help: "흐리고 답답하게 들릴 후보가 큽니다." };
+        if (mud === "주의") return { label: "주의", level: "warn", help: "일부 장비에서 먹먹하게 느낄 수 있습니다." };
+        return { label: "낮음", level: "ok", help: "먹먹함 후보는 크게 보이지 않습니다." };
+      })();
+
+      const high = (() => {
+        if (sharp === "높음" || tailHarsh === "높음") return { label: "피곤할 수 있음", level: "bad", help: "높은 소리나 끝부분 치치거림이 귀에 걸릴 수 있습니다." };
+        if (sharp === "주의" || tailHarsh === "주의" || tailHarsh === "세부 확인") return { label: "확인 필요", level: "warn", help: "고역 피로 후보가 있어 후렴과 큰 음 끝을 들어보세요." };
+        if (analysis.highRatio < 0.62) return { label: "어두운 편", level: "warn", help: "높은 소리가 적어 부드럽지만 답답하게 느낄 수도 있습니다." };
+        return { label: "무난함", level: "ok", help: "높은 소리 피로 후보는 크게 보이지 않습니다." };
+      })();
+
+      const liftItem = (() => {
+        if (lift >= 4.2) return { label: "크게 열림", level: "ok", help: "큰 부분이 조용한 부분보다 확실히 올라오는 편입니다." };
+        if (lift >= 2.2) return { label: "올라감", level: "ok", help: "후렴이나 큰 부분에서 에너지가 어느 정도 올라옵니다." };
+        if (lift >= 1.1) return { label: "조금 올라감", level: "warn", help: "큰 부분이 열리긴 하지만 극적인 차이는 작을 수 있습니다." };
+        return { label: "약함", level: "warn", help: "구간별 에너지 차이가 작아 후렴이 덜 터지는 느낌일 수 있습니다." };
+      })();
+
+      const cautionCount = [space, center, low, mudItem, high, liftItem].filter((item) => item.level !== "ok").length;
+      return { space, center, low, mud: mudItem, high, lift: liftItem, liftDb: lift, cautionCount };
+    }
+
+    function buildVibeList(profile, analysis, segments = []) {
+      const primary = plainPrimaryRisk(getPrimaryRisk(analysis, segments));
+      return [
+        `공간감은 ${profile.space.label}입니다. ${profile.space.help}`,
+        `중심 소리는 ${profile.center.label} 쪽입니다. ${profile.center.help}`,
+        `저역은 ${profile.low.label}이고, 먹먹함은 ${profile.mud.label}입니다.`,
+        `고역은 ${profile.high.label}입니다. ${profile.high.help}`,
+        `큰 부분의 에너지 변화는 ${profile.lift.label}입니다. 약 ${profile.liftDb.toFixed(1)} dB 차이로 근사했습니다.`,
+        `먼저 확인할 후보는 ${primary}입니다. 이 표현은 감정 평가가 아니라 소리 신호 해석입니다.`
+      ];
+    }
+
+    function buildVibeChangeList(before, after, beforeProfile, afterProfile) {
+      const items = [];
+      const lowDelta = after.lowRatio - before.lowRatio;
+      const highDelta = after.highRatio - before.highRatio;
+      const dynamicDelta = after.dynamic - before.dynamic;
+      const corrDelta = (after.correlation ?? 1) - (before.correlation ?? 1);
+      const liftDelta = afterProfile.liftDb - beforeProfile.liftDb;
+
+      if (lowDelta < -0.08) items.push("낮은 소리 뭉침 후보가 줄어 중심이 덜 묻힐 수 있습니다.");
+      else if (lowDelta > 0.08) items.push("낮은 소리 비중이 늘어 더 두껍지만 답답하게 느낄 수도 있습니다.");
+      else items.push("저역 성격은 크게 바뀌지 않았습니다.");
+
+      if (highDelta < -0.08) items.push("높은 소리 피로 후보가 줄어 오래 듣기 편할 수 있습니다.");
+      else if (highDelta > 0.08) items.push("높은 소리가 더 도드라져 선명하지만 피곤할 수도 있습니다.");
+      else items.push("고역 피로 성격은 큰 변화가 작습니다.");
+
+      if (dynamicDelta < -1) items.push("숨 쉴 공간이 줄어 더 눌린 느낌일 수 있습니다.");
+      else if (dynamicDelta > 1) items.push("작은 소리와 큰 소리 차이가 조금 더 살아났습니다.");
+      else items.push("전체 압박감은 크게 바뀌지 않았습니다.");
+
+      if (corrDelta < -0.04) items.push("좌우가 더 넓어졌습니다. 작은 스피커에서 중심이 빠지는지 확인하세요.");
+      else if (corrDelta > 0.04) items.push("좌우가 조금 모였습니다. 중심은 안정될 수 있지만 공간감은 줄 수 있습니다.");
+      else items.push("공간감은 대체로 유지됐습니다.");
+
+      if (liftDelta > 0.8) items.push("큰 부분의 에너지 상승이 더 분명해졌습니다.");
+      else if (liftDelta < -0.8) items.push("큰 부분의 에너지 상승이 줄었습니다. 후렴 힘이 빠졌는지 들어보세요.");
+      else items.push("후렴 에너지 변화는 크지 않습니다.");
+
+      return items;
+    }
+
+    function updateVibeDoctor(before, beforeSegments = [], after = null, afterSegments = []) {
+      if (!before) {
+        resetVibeDoctor();
+        return;
+      }
+      const beforeProfile = classifyVibeProfile(before, beforeSegments);
+      setVibeCard("vibeSpace", beforeProfile.space);
+      setVibeCard("vibeCenter", beforeProfile.center);
+      setVibeCard("vibeLow", beforeProfile.low);
+      setVibeCard("vibeMud", beforeProfile.mud);
+      setVibeCard("vibeHigh", beforeProfile.high);
+      setVibeCard("vibeLift", beforeProfile.lift);
+
+      $("vibeSummaryTitle").textContent = beforeProfile.cautionCount >= 3 ? "확인할 성격이 여러 개 있습니다." : "원본 성격을 읽었습니다.";
+      $("vibeSummaryText").textContent = `원본은 ${beforeProfile.space.label}, 중심 소리 ${beforeProfile.center.label}, 저역 ${beforeProfile.low.label}, 후렴 에너지 ${beforeProfile.lift.label} 쪽으로 보입니다. 이 결과는 음악 평가가 아니라 분석값 기반의 듣기 후보입니다.`;
+      $("vibeOriginalSummary").textContent = "원본에서 먼저 들릴 가능성이 큰 성격입니다.";
+      renderExplanationList("vibeOriginalList", buildVibeList(beforeProfile, before, beforeSegments));
+
+      if (!after) {
+        resetProcessedVibeDoctor();
+        return;
+      }
+
+      const afterProfile = classifyVibeProfile(after, afterSegments);
+      $("vibeProcessedSummary").textContent = "보정본에서 먼저 들릴 가능성이 큰 성격입니다.";
+      renderExplanationList("vibeProcessedList", buildVibeList(afterProfile, after, afterSegments));
+      $("vibeChangeSummary").textContent = "보정으로 성격이 어떻게 움직였는지 정리했습니다.";
+      renderExplanationList("vibeChangeList", buildVibeChangeList(before, after, beforeProfile, afterProfile));
     }
 
     function plainPrimaryRisk(risk) {
@@ -3142,12 +4233,32 @@
     }
 
     function resetComparison() {
-      ["beforePeak", "afterPeak", "peakDelta", "beforeRms", "afterRms", "rmsDelta", "beforeDynamic", "afterDynamic", "dynamicDelta", "beforeMud", "afterMud", "mudDelta", "beforeSharp", "afterSharp", "sharpDelta"].forEach((id) => {
+      ["beforePeak", "afterPeak", "peakDelta", "beforeRms", "afterRms", "rmsDelta", "beforeLufs", "afterLufs", "lufsDelta", "beforeTruePeak", "afterTruePeak", "truePeakDelta", "beforeLra", "afterLra", "lraDelta", "beforeDynamic", "afterDynamic", "dynamicDelta", "beforeMud", "afterMud", "mudDelta", "beforeSharp", "afterSharp", "sharpDelta"].forEach((id) => {
         $(id).textContent = "-";
       });
       $("afterSummary").querySelector("p").textContent = "추천 보정을 만들면 원본과 보정본의 수치 차이를 보여줍니다.";
       resetResultGuidance();
       resetProcessedSoundExplanation();
+      resetProcessedVibeDoctor();
+    }
+
+    function describeLufsChange(before, after) {
+      const delta = after.lufs - before.lufs;
+      if (Math.abs(delta) <= 0.8) return "체감 크기는 비슷합니다.";
+      return delta > 0 ? "보정본이 더 크게 느껴질 수 있습니다." : "보정본이 더 작게 느껴질 수 있습니다.";
+    }
+
+    function describeTruePeakChange(before, after) {
+      const delta = dbNumber(after.truePeak) - dbNumber(before.truePeak);
+      if (delta < -0.5) return "깨짐 여유가 늘었습니다.";
+      if (delta > 0.5) return "0 dB에 가까워졌습니다.";
+      return "깨짐 여유 차이는 작습니다.";
+    }
+
+    function describeLraChange(before, after) {
+      const delta = after.loudnessRange - before.loudnessRange;
+      if (Math.abs(delta) <= 1) return "크기 움직임은 비슷합니다.";
+      return delta > 0 ? "구간별 크기 차이가 커졌습니다." : "구간별 크기 차이가 좁아졌습니다.";
     }
 
     function updateComparison(before, after) {
@@ -3157,6 +4268,15 @@
       $("beforeRms").textContent = db(before.rms);
       $("afterRms").textContent = db(after.rms);
       $("rmsDelta").textContent = `${formatDelta(after.rms, before.rms)} / ${describeChange("rms", before, after)}`;
+      $("beforeLufs").textContent = formatLufs(before.lufs);
+      $("afterLufs").textContent = formatLufs(after.lufs);
+      $("lufsDelta").textContent = `${formatSignedPlain(after.lufs - before.lufs, "LU")} / ${describeLufsChange(before, after)}`;
+      $("beforeTruePeak").textContent = formatTruePeak(before.truePeak);
+      $("afterTruePeak").textContent = formatTruePeak(after.truePeak);
+      $("truePeakDelta").textContent = `${formatSignedPlain(dbNumber(after.truePeak) - dbNumber(before.truePeak), "dB")} / ${describeTruePeakChange(before, after)}`;
+      $("beforeLra").textContent = formatLoudnessRange(before.loudnessRange);
+      $("afterLra").textContent = formatLoudnessRange(after.loudnessRange);
+      $("lraDelta").textContent = `${formatSignedPlain(after.loudnessRange - before.loudnessRange, "LU")} / ${describeLraChange(before, after)}`;
       $("beforeDynamic").textContent = `${before.dynamic.toFixed(1)} dB`;
       $("afterDynamic").textContent = `${after.dynamic.toFixed(1)} dB`;
       $("dynamicDelta").textContent = describeChange("dynamic", before, after);
@@ -3869,10 +4989,12 @@
       state.processedUrl = null;
       state.processedBuffer = null;
       state.processedAnalysis = null;
+      state.processedSegments = [];
       state.detailToggleNextKind = "original";
       $("processedAudio").removeAttribute("src");
-      $("saveBtn").disabled = true;
+      setSaveButtonsDisabled(true);
       $("abProcessedBtn").disabled = true;
+      $("genreCompareBtn").disabled = true;
       drawWave($("processedWave"), null);
       drawAbWave($("abWave"));
       resetComparison();
@@ -4054,11 +5176,13 @@
       if (state.processedBuffer) {
         state.processedBuffer = null;
         state.processedAnalysis = null;
+        state.processedSegments = [];
         if (state.processedUrl) URL.revokeObjectURL(state.processedUrl);
         state.processedUrl = null;
         $("processedAudio").removeAttribute("src");
-        $("saveBtn").disabled = true;
+        setSaveButtonsDisabled(true);
         $("abProcessedBtn").disabled = true;
+        $("genreCompareBtn").disabled = true;
         drawWave($("processedWave"), null);
         drawAbWave($("abWave"));
         resetComparison();
@@ -4081,11 +5205,13 @@
       if (state.processedBuffer) {
         state.processedBuffer = null;
         state.processedAnalysis = null;
+        state.processedSegments = [];
         if (state.processedUrl) URL.revokeObjectURL(state.processedUrl);
         state.processedUrl = null;
         $("processedAudio").removeAttribute("src");
-        $("saveBtn").disabled = true;
+        setSaveButtonsDisabled(true);
         $("abProcessedBtn").disabled = true;
+        $("genreCompareBtn").disabled = true;
         drawWave($("processedWave"), null);
         drawAbWave($("abWave"));
         resetComparison();
@@ -4095,6 +5221,53 @@
         $("processLog").innerHTML = "<li>소리 개선 목표를 바꿨습니다. 추천 보정을 다시 만들어야 합니다.</li>";
         $("processNote").textContent = "소리 개선 목표를 바꿨습니다. 추천 보정을 다시 만드세요.";
         updateQuickWorkflow("소리 개선 목표를 바꿨습니다. 보정 만들기를 다시 누르세요.");
+      }
+    }
+
+    function selectGenre(genreName) {
+      const safeGenre = genreProfiles[genreName] ? genreName : "popRadio";
+      document.querySelectorAll("[data-genre]").forEach((item) => {
+        item.classList.toggle("active", item.dataset.genre === safeGenre);
+      });
+      state.genre = safeGenre;
+      $("genreHelp").textContent = genreProfiles[safeGenre].help;
+      if (state.processedBuffer) {
+        clearProcessedAfterEdit("장르를 바꿨습니다. 장르 보정본을 다시 만들어야 합니다.");
+      }
+    }
+
+    function selectGenrePreset(presetName) {
+      const safePreset = genrePresets[presetName] ? presetName : "normal";
+      document.querySelectorAll("[data-genre-preset]").forEach((item) => {
+        item.classList.toggle("active", item.dataset.genrePreset === safePreset);
+      });
+      state.genrePreset = safePreset;
+      if (state.processedBuffer) {
+        clearProcessedAfterEdit("장르 보정 방향을 바꿨습니다. 장르 보정본을 다시 만들어야 합니다.");
+      }
+    }
+
+    function updateGenrePreCleanDisplay() {
+      const toggle = $("genrePreCleanToggle");
+      const stateLabel = $("genrePreCleanState");
+      const help = $("genrePreCleanHelp");
+      if (!toggle || !stateLabel || !help) return;
+      toggle.checked = Boolean(state.genrePreClean);
+      stateLabel.textContent = state.genrePreClean ? "안전 정리 예약됨" : "장르만 적용";
+      stateLabel.classList.toggle("active", Boolean(state.genrePreClean));
+      help.textContent = state.genrePreClean
+        ? "먹먹함, 귀 피로, 과한 피크 후보를 약하게 정리한 뒤 장르 성격을 한 번에 살립니다."
+        : "꺼져 있으면 선택한 장르 성격만 바로 살립니다.";
+    }
+
+    function setGenrePreClean(enabled) {
+      state.genrePreClean = Boolean(enabled);
+      updateGenrePreCleanDisplay();
+      if (state.originalBuffer && !state.processedBuffer) {
+        $("genreNote").textContent = `${genreProfiles[state.genre].label} 장르 보정을 만들 수 있습니다.${state.genrePreClean ? " 안전 정리도 함께 예약되어 있습니다." : ""}`;
+      }
+      if (state.processedBuffer) {
+        clearProcessedAfterEdit("먼저 안전 정리 설정을 바꿨습니다. 장르 보정본을 다시 만들어야 합니다.");
       }
     }
 
@@ -4129,7 +5302,7 @@
     function buildProcessLog(before, after, presetLabel, goalLabel, applyFade, plan) {
       const logs = [
         `${presetLabel} 프리셋을 적용했습니다.`,
-        `${goalLabel} 목표를 적용했습니다.`,
+        plan?.genreLabel ? `${goalLabel} 장르 보정을 적용했습니다.` : `${goalLabel} 목표를 적용했습니다.`,
         "평균 음량은 원본과 가깝게 맞췄습니다.",
         "최대 소리는 0 dB에 닿지 않도록 여유를 남겼습니다.",
         "강한 음량 증폭은 하지 않았습니다."
@@ -4159,10 +5332,16 @@
       const mud = labelMud(analysis);
       const sharp = labelSharp(analysis);
       const tailHarsh = labelTailHarsh(analysis);
+      const lufs = labelLufs(analysis);
+      const truePeak = labelTruePeak(analysis);
+      const loudnessRange = labelLoudnessRange(analysis);
 
       resetMetricClasses();
       $("peakValue").textContent = db(analysis.peak);
       $("rmsValue").textContent = db(analysis.rms);
+      $("lufsValue").textContent = formatLufs(analysis.lufs);
+      $("truePeakValue").textContent = formatTruePeak(analysis.truePeak);
+      $("lraValue").textContent = formatLoudnessRange(analysis.loudnessRange);
       $("clipValue").textContent = clip;
       $("dynamicValue").textContent = dynamic;
       $("mudValue").textContent = mud;
@@ -4175,6 +5354,9 @@
       $("tailSilenceValue").textContent = labelSilence(analysis.tailSilenceSec);
       $("peakHelp").textContent = describePeak(analysis);
       $("rmsHelp").textContent = describeRms(analysis);
+      $("lufsHelp").textContent = `${describeLufsEstimate(analysis)} 앱 안에서 계산한 근사값입니다.`;
+      $("truePeakHelp").textContent = `${describeTruePeakEstimate(analysis)} 앱 안에서 계산한 근사값입니다.`;
+      $("lraHelp").textContent = describeLoudnessRangeEstimate(analysis);
       $("clipHelp").textContent = clip === "높음" ? "깨짐 위험이 큽니다. 볼륨을 올리는 보정은 피하세요." : clip === "주의" ? "여유가 적습니다. 보정 후 최대 소리를 다시 확인하세요." : "지금 상태에서는 깨짐 위험이 낮습니다.";
       $("dynamicHelp").textContent = describeDynamic(analysis);
       $("mudHelp").textContent = describeBand(mud, "mud");
@@ -4194,6 +5376,9 @@
 
       updateMetricTone("peakMetric", analysis.peak >= 0.96 ? "warnish" : "");
       updateMetricTone("clipMetric", clip === "높음" ? "risky" : clip === "주의" ? "warnish" : "");
+      updateMetricTone("lufsMetric", lufs === "과함" ? "risky" : lufs === "큰 편" || lufs === "작은 편" ? "warnish" : "");
+      updateMetricTone("truePeakMetric", truePeak === "위험" ? "risky" : truePeak === "주의" ? "warnish" : "");
+      updateMetricTone("lraMetric", loudnessRange === "많이 눌림" || loudnessRange === "출렁임 큼" ? "warnish" : "");
       updateMetricTone("dynamicMetric", dynamic === "많이 눌림" ? "warnish" : "");
       updateMetricTone("mudMetric", mud === "높음" ? "risky" : mud === "주의" ? "warnish" : "");
       updateMetricTone("sharpMetric", sharp === "높음" ? "risky" : sharp === "주의" ? "warnish" : "");
@@ -4355,6 +5540,14 @@
         clarityBoost: 0,
         deharshCut: 0,
         airGain: 0,
+        lowShelfOffset: 0,
+        highShelfOffset: 0,
+        mudFrequency: 320,
+        mudQ: 0.9,
+        clarityFrequency: 2600,
+        clarityQ: 0.8,
+        deharshFrequency: 6800,
+        airFrequency: 9500,
         width: 1,
         logs: []
       };
@@ -4419,6 +5612,295 @@
       }
 
       return plan;
+    }
+
+    function buildGenreEnhancementPlan(analysis, genreName, presetName, includePreClean = false) {
+      const safeGenre = genreProfiles[genreName] ? genreName : "popRadio";
+      const profile = genreProfiles[safeGenre];
+      const weight = presetName === "strong" ? 1.2 : presetName === "normal" ? 1 : 0.68;
+      const mud = labelMud(analysis);
+      const sharp = labelSharp(analysis);
+      const tailHarsh = labelTailHarsh(analysis);
+      const plan = {
+        goalName: `genre_${safeGenre}`,
+        goalLabel: `${profile.label} 장르`,
+        genreName: safeGenre,
+        genreLabel: profile.label,
+        mudCut: 0,
+        clarityBoost: 0,
+        deharshCut: 0,
+        airGain: 0,
+        lowShelfOffset: 0,
+        highShelfOffset: 0,
+        mudFrequency: 320,
+        mudQ: 0.9,
+        clarityFrequency: 2600,
+        clarityQ: 0.8,
+        deharshFrequency: 6800,
+        airFrequency: 9500,
+        width: 1,
+        logs: []
+      };
+
+      if (sharp === "높음") plan.deharshCut -= 0.38 * weight;
+      else if (sharp === "주의") plan.deharshCut -= 0.22 * weight;
+      if (tailHarsh === "높음") plan.deharshCut -= 0.32 * weight;
+      else if (tailHarsh === "주의") plan.deharshCut -= 0.18 * weight;
+      if (mud === "높음") plan.mudCut -= 0.24 * weight;
+      else if (mud === "주의") plan.mudCut -= 0.12 * weight;
+
+      if (safeGenre === "popRadio") {
+        plan.mudCut -= 0.32 * weight;
+        plan.clarityBoost += 0.58 * weight;
+        plan.deharshCut -= 0.2 * weight;
+        plan.airGain += 0.02 * weight;
+        plan.highShelfOffset += 0.08 * weight;
+        if (canSafelyWiden(analysis)) plan.width += 0.025 * weight;
+        logsPush(plan, "대중/라디오용으로 중심 소리를 무난하게 앞으로 정리했습니다.");
+      }
+      if (safeGenre === "vocalBallad") {
+        plan.mudCut -= 0.68 * weight;
+        plan.clarityBoost += 0.68 * weight;
+        plan.deharshCut -= 0.34 * weight;
+        plan.airGain -= 0.04 * weight;
+        plan.lowShelfOffset -= 0.06 * weight;
+        plan.highShelfOffset += 0.06 * weight;
+        plan.mudFrequency = 285;
+        plan.mudQ = 0.82;
+        plan.clarityFrequency = 3000;
+        plan.clarityQ = 0.75;
+        plan.width -= 0.01 * weight;
+        logsPush(plan, "보컬/발라드용으로 목소리 주변을 덜 흐리게 정리했습니다.");
+      }
+      if (safeGenre === "rockBand") {
+        plan.mudCut -= 0.1 * weight;
+        plan.clarityBoost += 0.42 * weight;
+        plan.deharshCut -= 0.12 * weight;
+        plan.lowShelfOffset += 0.08 * weight;
+        plan.highShelfOffset += 0.18 * weight;
+        plan.mudFrequency = 380;
+        plan.mudQ = 0.72;
+        plan.clarityFrequency = 2100;
+        plan.clarityQ = 0.9;
+        logsPush(plan, "록/밴드용으로 서브 저음보다 기타, 보컬, 드럼의 존재감을 더 살렸습니다.");
+      }
+      if (safeGenre === "danceEdm") {
+        plan.mudCut -= 0.04 * weight;
+        plan.clarityBoost += 0.18 * weight;
+        plan.deharshCut -= 0.12 * weight;
+        plan.airGain += 0.12 * weight;
+        plan.lowShelfOffset += 1.05 * weight;
+        plan.highShelfOffset += 0.2 * weight;
+        plan.mudFrequency = 360;
+        plan.mudQ = 0.72;
+        if (canSafelyWiden(analysis)) plan.width += 0.035 * weight;
+        logsPush(plan, "댄스/EDM용으로 킥과 베이스의 힘을 보존하면서 밝기와 공간을 정리했습니다.");
+      }
+      if (safeGenre === "hiphopRnb") {
+        plan.mudCut -= 0.42 * weight;
+        plan.clarityBoost += 0.42 * weight;
+        plan.deharshCut -= 0.1 * weight;
+        plan.airGain -= 0.02 * weight;
+        plan.lowShelfOffset += 0.08 * weight;
+        plan.highShelfOffset += 0.02 * weight;
+        plan.mudFrequency = 430;
+        plan.mudQ = 0.78;
+        plan.clarityFrequency = 2700;
+        plan.clarityQ = 0.86;
+        plan.width -= 0.006 * weight;
+        logsPush(plan, "힙합/R&B용으로 초저역을 더 밀지 않고 보컬과 랩 존재감을 함께 지켰습니다.");
+      }
+      if (safeGenre === "acousticFolk") {
+        plan.mudCut -= 0.38 * weight;
+        plan.clarityBoost += 0.2 * weight;
+        plan.deharshCut -= 0.28 * weight;
+        plan.airGain -= 0.08 * weight;
+        plan.lowShelfOffset -= 0.04 * weight;
+        plan.mudFrequency = 300;
+        plan.width -= 0.02 * weight;
+        logsPush(plan, "어쿠스틱용으로 자연스러움을 유지하면서 피로한 부분만 정리했습니다.");
+      }
+      if (safeGenre === "worshipCcm") {
+        plan.mudCut -= 0.3 * weight;
+        plan.clarityBoost += 0.36 * weight;
+        plan.deharshCut -= 0.28 * weight;
+        plan.airGain += 0.02 * weight;
+        if (canSafelyWiden(analysis)) plan.width += 0.015 * weight;
+        logsPush(plan, "CCM/워십용으로 공간을 크게 줄이지 않고 중심 소리를 정리했습니다.");
+      }
+      if (safeGenre === "jazzSoul") {
+        plan.mudCut -= 0.12 * weight;
+        plan.clarityBoost += 0.12 * weight;
+        plan.deharshCut -= 0.22 * weight;
+        plan.airGain -= 0.04 * weight;
+        plan.lowShelfOffset += 0.42 * weight;
+        plan.mudFrequency = 270;
+        plan.width -= 0.01 * weight;
+        logsPush(plan, "재즈/소울용으로 따뜻함은 두고 과한 답답함만 줄였습니다.");
+      }
+      if (safeGenre === "cinematicEpic") {
+        plan.mudCut -= 0.1 * weight;
+        plan.clarityBoost += 0.14 * weight;
+        plan.deharshCut -= 0.24 * weight;
+        plan.airGain += 0.08 * weight;
+        plan.lowShelfOffset += 0.78 * weight;
+        plan.highShelfOffset += 0.12 * weight;
+        plan.mudFrequency = 360;
+        if (canSafelyWiden(analysis)) plan.width += 0.03 * weight;
+        logsPush(plan, "시네마틱용으로 웅장함을 보존하면서 번짐과 귀 피로를 줄였습니다.");
+      }
+
+      if (presetName === "strong") {
+        applyGenreEmphasis(plan, safeGenre, analysis);
+      }
+
+      if (includePreClean) {
+        const preCleanPlan = buildEnhancementPlan(analysis, "auto", "light");
+        mergePreCleanIntoGenrePlan(plan, preCleanPlan, safeGenre, analysis);
+      }
+
+      if (safeGenre === "danceEdm" || safeGenre === "cinematicEpic") {
+        const bassMudFloor = includePreClean ? -0.95 : -0.42 * weight;
+        plan.mudCut = Math.max(plan.mudCut, bassMudFloor);
+      }
+      if (safeGenre === "hiphopRnb") {
+        const hiphopMudFloor = includePreClean ? -1.05 : -0.78 * weight;
+        plan.mudCut = Math.max(plan.mudCut, hiphopMudFloor);
+        plan.lowShelfOffset = Math.min(plan.lowShelfOffset, includePreClean ? 0.08 : 0.12);
+      }
+
+      const clarityCap = safeGenre === "rockBand"
+        ? (sharp === "높음" ? 0.75 : 1.15)
+        : safeGenre === "hiphopRnb"
+          ? (sharp === "높음" ? 0.65 : 1.0)
+        : sharp === "보통" ? 1.1 : 0.6;
+      plan.mudCut = clamp(plan.mudCut, -1.9, 0);
+      plan.clarityBoost = clamp(plan.clarityBoost, 0, clarityCap);
+      plan.deharshCut = clamp(plan.deharshCut, -2.0, 0);
+      plan.airGain = clamp(plan.airGain, -0.65, 0.32);
+      plan.lowShelfOffset = clamp(plan.lowShelfOffset, -0.25, 1.25);
+      plan.highShelfOffset = clamp(plan.highShelfOffset, -0.25, 0.55);
+      plan.width = clamp(plan.width, 0.92, 1.08);
+      if (plan.lowShelfOffset > 0.12) logsPush(plan, "장르 특성상 저음을 과하게 깎지 않도록 조절했습니다.");
+      if (plan.highShelfOffset > 0.05 || plan.airGain > 0.05) logsPush(plan, "장르 특성상 밝기와 끝맛을 너무 죽이지 않도록 조절했습니다.");
+      if (plan.width > 1.01) logsPush(plan, "작은 스피커 위험이 낮아 좌우 폭을 아주 조금 넓혔습니다.");
+      if (plan.width < 0.99) logsPush(plan, "중심이 비지 않도록 좌우 폭을 살짝 모았습니다.");
+      return plan;
+    }
+
+    function mergePreCleanIntoGenrePlan(plan, preCleanPlan, safeGenre, analysis) {
+      plan.preClean = true;
+      plan.goalName = `${plan.goalName}_preclean`;
+      plan.goalLabel = `${plan.goalLabel} + 안전 정리`;
+      logsPush(plan, "먼저 안전 정리를 예약해 먹먹함, 귀 피로, 과한 피크 후보를 약하게 정리한 뒤 장르를 살렸습니다.");
+
+      plan.mudCut += (preCleanPlan.mudCut || 0) * 0.55;
+      plan.clarityBoost += (preCleanPlan.clarityBoost || 0) * 0.4;
+      plan.deharshCut += (preCleanPlan.deharshCut || 0) * 0.62;
+      plan.airGain += (preCleanPlan.airGain || 0) * 0.42;
+      plan.width += ((preCleanPlan.width || 1) - 1) * 0.35;
+
+      if (safeGenre === "danceEdm" || safeGenre === "cinematicEpic") {
+        plan.mudCut = Math.max(plan.mudCut, -0.95);
+        plan.lowShelfOffset = Math.max(plan.lowShelfOffset, 0.15);
+        logsPush(plan, "저음 중심 장르는 안전 정리를 켜도 베이스를 과하게 깎지 않도록 제한했습니다.");
+      }
+
+      if (safeGenre === "hiphopRnb") {
+        plan.mudCut = Math.max(plan.mudCut, -1.05);
+        plan.lowShelfOffset = Math.min(plan.lowShelfOffset, 0.08);
+        plan.clarityBoost += 0.12;
+        plan.highShelfOffset = Math.min(plan.highShelfOffset + 0.02, 0.16);
+        plan.width = Math.max(plan.width, 0.985);
+        logsPush(plan, "힙합/R&B는 안전 정리를 켜도 초저역을 더 키우지 않고 보컬과 랩 존재감을 우선했습니다.");
+      }
+
+      if (safeGenre === "rockBand") {
+        plan.mudCut = Math.max(plan.mudCut, -0.85);
+        plan.lowShelfOffset = Math.min(plan.lowShelfOffset, 0.18);
+        plan.clarityBoost += 0.1;
+        plan.highShelfOffset += 0.08;
+        logsPush(plan, "록/밴드는 안전 정리를 켜도 서브 저음보다 기타와 보컬 존재감을 우선했습니다.");
+      }
+
+      if (labelSharp(analysis) === "높음" || labelTailHarsh(analysis) === "높음") {
+        plan.highShelfOffset = Math.min(plan.highShelfOffset, 0.25);
+        plan.airGain = Math.min(plan.airGain, 0.12);
+        logsPush(plan, "높은 소리 위험이 커서 장르 강조의 밝기 상승을 제한했습니다.");
+      }
+
+      (preCleanPlan.logs || []).slice(0, 3).forEach((item) => {
+        logsPush(plan, `안전 정리: ${item}`);
+      });
+    }
+
+    function applyGenreEmphasis(plan, safeGenre, analysis) {
+      logsPush(plan, "장르 강조는 더 세게 누르는 보정이 아니라 선택한 장르의 성격을 더 드러내도록 조절했습니다.");
+      if (safeGenre === "popRadio") {
+        plan.clarityBoost += 0.18;
+        plan.highShelfOffset += 0.12;
+        plan.airGain += 0.06;
+        logsPush(plan, "대중/라디오 장르 강조로 중심 소리와 밝기를 조금 더 앞으로 뒀습니다.");
+      } else if (safeGenre === "vocalBallad") {
+        plan.mudCut -= 0.18;
+        plan.clarityBoost += 0.24;
+        plan.highShelfOffset += 0.08;
+        plan.width -= 0.005;
+        logsPush(plan, "보컬/발라드 장르 강조로 목소리 주변을 더 또렷하게 뒀습니다.");
+      } else if (safeGenre === "rockBand") {
+        plan.lowShelfOffset += 0.02;
+        plan.clarityBoost += 0.3;
+        plan.highShelfOffset += 0.22;
+        plan.airGain += 0.04;
+        plan.deharshCut += labelSharp(analysis) === "높음" ? 0 : 0.1;
+        plan.clarityFrequency = 2200;
+        plan.clarityQ = 0.95;
+        logsPush(plan, "록/밴드 장르 강조로 기타와 보컬의 전진감을 더 살렸습니다.");
+      } else if (safeGenre === "danceEdm") {
+        plan.lowShelfOffset += 0.12;
+        plan.clarityBoost += 0.22;
+        plan.highShelfOffset += 0.22;
+        plan.airGain += 0.14;
+        plan.deharshCut += labelSharp(analysis) === "높음" ? 0 : 0.08;
+        logsPush(plan, "댄스/EDM 장르 강조로 저음의 힘과 밝은 에너지감을 더 살렸습니다.");
+      } else if (safeGenre === "hiphopRnb") {
+        plan.lowShelfOffset += 0.02;
+        plan.clarityBoost += 0.24;
+        plan.highShelfOffset += 0.03;
+        plan.airGain -= 0.01;
+        plan.width -= 0.003;
+        plan.clarityFrequency = 2800;
+        plan.clarityQ = 0.9;
+        logsPush(plan, "힙합/R&B 장르 강조로 저음 바닥보다 보컬과 랩 전진감을 더 살렸습니다.");
+      } else if (safeGenre === "acousticFolk") {
+        plan.clarityBoost += 0.08;
+        plan.airGain += 0.04;
+        plan.deharshCut -= 0.04;
+        logsPush(plan, "어쿠스틱 장르 강조로 자연스러움은 유지하고 질감만 조금 더 드러냈습니다.");
+      } else if (safeGenre === "worshipCcm") {
+        plan.clarityBoost += 0.16;
+        plan.airGain += 0.08;
+        if (canSafelyWiden(analysis)) plan.width += 0.015;
+        logsPush(plan, "CCM/워십 장르 강조로 말소리와 공간감을 조금 더 살렸습니다.");
+      } else if (safeGenre === "jazzSoul") {
+        plan.lowShelfOffset += 0.12;
+        plan.clarityBoost += 0.06;
+        plan.airGain -= 0.02;
+        logsPush(plan, "재즈/소울 장르 강조로 따뜻함과 두께를 더 유지했습니다.");
+      } else if (safeGenre === "cinematicEpic") {
+        plan.lowShelfOffset += 0.2;
+        plan.highShelfOffset += 0.14;
+        plan.airGain += 0.12;
+        if (canSafelyWiden(analysis)) plan.width += 0.02;
+        logsPush(plan, "시네마틱 장르 강조로 스케일과 끝의 개방감을 더 살렸습니다.");
+      }
+    }
+
+    function canSafelyWiden(analysis) {
+      return analysis.monoLabel === "안전"
+        && analysis.phaseLabel === "안전"
+        && analysis.balanceLabel === "균형"
+        && analysis.correlation > 0.25;
     }
 
     function logsPush(plan, message) {
@@ -4505,8 +5987,8 @@
     }
 
     function matchConservativeLevel(original, processed, preset) {
-      const before = computeBasic(original);
-      const after = computeBasic(processed);
+      const before = computeBasic(original, { includeLoudness: false });
+      const after = computeBasic(processed, { includeLoudness: false });
       const targetRms = before.rms * preset.rmsLift;
       const gainByRms = targetRms / Math.max(after.rms, 0.000001);
       const gainByPeak = preset.ceiling / Math.max(after.peak, 0.000001);
@@ -4514,9 +5996,19 @@
       return scaleBuffer(processed, gain);
     }
 
+    function runtimePresetFor(mode, presetName) {
+      const source = mode === "genre" ? genrePresets : presets;
+      return source[presetName] || source.normal || source.light;
+    }
+
     async function processBuffer(buffer, presetName, options = {}) {
-      const preset = presets[presetName];
-      const plan = buildEnhancementPlan(options.analysis || computeBasic(buffer), options.goal || state.goal, presetName);
+      const mode = options.mode === "genre" ? "genre" : "goal";
+      const preset = runtimePresetFor(mode, presetName);
+      const analysis = options.analysis || computeBasic(buffer);
+      const includePreClean = mode === "genre" && Boolean(options.genrePreClean);
+      const plan = mode === "genre"
+        ? buildGenreEnhancementPlan(analysis, options.genre || state.genre, presetName, includePreClean)
+        : buildEnhancementPlan(analysis, options.goal || state.goal, presetName);
       const offline = new OfflineAudioContext(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
       const source = offline.createBufferSource();
       source.buffer = buffer;
@@ -4527,49 +6019,49 @@
 
       const lowShelf = offline.createBiquadFilter();
       lowShelf.type = "lowshelf";
-      lowShelf.frequency.value = 180;
-      lowShelf.gain.value = preset.lowShelf;
+      lowShelf.frequency.value = preset.lowShelfFrequency || 180;
+      lowShelf.gain.value = preset.lowShelf + (plan.lowShelfOffset || 0);
 
       const mudCut = offline.createBiquadFilter();
       mudCut.type = "peaking";
-      mudCut.frequency.value = 320;
-      mudCut.Q.value = 0.9;
+      mudCut.frequency.value = plan.mudFrequency || 320;
+      mudCut.Q.value = plan.mudQ || 0.9;
       mudCut.gain.value = plan.mudCut;
 
       const clarity = offline.createBiquadFilter();
       clarity.type = "peaking";
-      clarity.frequency.value = 2600;
-      clarity.Q.value = 0.8;
+      clarity.frequency.value = plan.clarityFrequency || 2600;
+      clarity.Q.value = plan.clarityQ || 0.8;
       clarity.gain.value = plan.clarityBoost;
 
       const deharsh = offline.createBiquadFilter();
       deharsh.type = "peaking";
-      deharsh.frequency.value = 6800;
+      deharsh.frequency.value = plan.deharshFrequency || 6800;
       deharsh.Q.value = 1.1;
       deharsh.gain.value = plan.deharshCut;
 
       const air = offline.createBiquadFilter();
       air.type = "highshelf";
-      air.frequency.value = 9500;
+      air.frequency.value = plan.airFrequency || 9500;
       air.gain.value = plan.airGain;
 
       const highShelf = offline.createBiquadFilter();
       highShelf.type = "highshelf";
-      highShelf.frequency.value = 6200;
-      highShelf.gain.value = preset.highShelf;
+      highShelf.frequency.value = preset.highShelfFrequency || 6200;
+      highShelf.gain.value = preset.highShelf + (plan.highShelfOffset || 0);
 
       const compressor = offline.createDynamicsCompressor();
-      compressor.threshold.value = -18;
-      compressor.knee.value = 18;
+      compressor.threshold.value = preset.compressorThreshold ?? -18;
+      compressor.knee.value = preset.compressorKnee ?? 18;
       compressor.ratio.value = preset.compressorRatio;
-      compressor.attack.value = 0.008;
-      compressor.release.value = 0.18;
+      compressor.attack.value = preset.compressorAttack ?? 0.008;
+      compressor.release.value = preset.compressorRelease ?? 0.18;
 
       const gain = offline.createGain();
       gain.gain.value = preset.driveGain;
 
       const limiter = offline.createWaveShaper();
-      limiter.curve = buildCurve(2.2);
+      limiter.curve = buildCurve(preset.limiterCurve || 2.2);
       limiter.oversample = "4x";
 
       source.connect(highpass);
@@ -4800,7 +6292,7 @@
       $("originalAudio").load();
       $("processedAudio").removeAttribute("src");
       $("processedAudio").load();
-      $("saveBtn").disabled = true;
+      setSaveButtonsDisabled(true);
       resetAbPlayer();
       $("fileNote").textContent = `${file.name} 불러오는 중...`;
 
@@ -4811,6 +6303,7 @@
       state.processedAnalysis = null;
       state.analysis = null;
       state.segments = [];
+      state.processedSegments = [];
       state.activePlayback = { player: null, kind: null };
       drawWave($("originalWave"), state.originalBuffer);
       drawWave($("processedWave"), null);
@@ -4819,10 +6312,17 @@
       $("fileNote").textContent = `${file.name} 로드 완료`;
       $("analyzeBtn").disabled = false;
       $("processBtn").disabled = false;
+      $("genreProcessBtn").disabled = false;
+      $("genreCompareBtn").disabled = true;
+      updateGenrePreCleanDisplay();
+      $("genreNote").textContent = `${genreProfiles[state.genre].label} 장르 보정을 만들 수 있습니다.${state.genrePreClean ? " 안전 정리도 함께 예약되어 있습니다." : ""}`;
       $("analysisNote").textContent = "자동 점검을 누르세요.";
       resetMetricClasses();
       $("peakValue").textContent = "-";
       $("rmsValue").textContent = "-";
+      $("lufsValue").textContent = "-";
+      $("truePeakValue").textContent = "-";
+      $("lraValue").textContent = "-";
       $("clipValue").textContent = "-";
       $("dynamicValue").textContent = "-";
       $("mudValue").textContent = "-";
@@ -4835,6 +6335,9 @@
       $("tailSilenceValue").textContent = "-";
       $("peakHelp").textContent = "가장 큰 순간이 얼마나 0 dB에 가까운지 봅니다.";
       $("rmsHelp").textContent = "노래 전체가 체감상 어느 정도 크게 들릴지 봅니다.";
+      $("lufsHelp").textContent = "LUFS에 가까운 앱 추정값입니다. 전문 계측기 값과 완전히 같지는 않습니다.";
+      $("truePeakHelp").textContent = "0 dB에 너무 가까우면 저장본에서 거칠게 깨질 수 있습니다.";
+      $("lraHelp").textContent = "곡 안에서 크고 작은 흐름이 얼마나 남아 있는지 봅니다.";
       $("clipHelp").textContent = "높으면 소리가 깨질 수 있어 더 키우면 안 됩니다.";
       $("dynamicHelp").textContent = "작은 소리와 큰 소리의 차이입니다. 너무 낮으면 꽉 막혀 들릴 수 있습니다.";
       $("mudHelp").textContent = "낮은 소리가 뭉치면 보컬과 악기가 흐릿하게 들릴 수 있습니다.";
@@ -4851,6 +6354,7 @@
       resetSegmentAnalysis();
       resetDecisionPanels();
       resetSoundExplanations();
+      resetVibeDoctor();
       $("processNote").textContent = "추천 보정을 만들 수 있습니다.";
       $("abOriginalBtn").disabled = false;
       setAbSource("original");
@@ -4881,6 +6385,7 @@
       updateSegmentAnalysis(segments);
       updateRecommendation(state.analysis, segments);
       updateOriginalSoundExplanation(state.analysis, segments);
+      updateVibeDoctor(state.analysis, segments);
       resetProcessedSoundExplanation();
       updateQuickWorkflow();
     });
@@ -4897,10 +6402,41 @@
       });
     });
 
-    $("processBtn").addEventListener("click", async () => {
+    document.querySelectorAll("[data-genre]").forEach((button) => {
+      button.addEventListener("click", () => {
+        selectGenre(button.dataset.genre);
+      });
+    });
+
+    document.querySelectorAll("[data-genre-preset]").forEach((button) => {
+      button.addEventListener("click", () => {
+        selectGenrePreset(button.dataset.genrePreset);
+      });
+    });
+
+    $("genrePreCleanToggle").addEventListener("change", () => {
+      setGenrePreClean($("genrePreCleanToggle").checked);
+    });
+    updateGenrePreCleanDisplay();
+
+    $("genreProcessBtn").addEventListener("click", async () => {
+      await createProcessedVersion("genre");
+    });
+
+    $("genreCompareBtn").addEventListener("click", () => selectView("compare"));
+
+    async function createProcessedVersion(mode = "goal") {
       if (!state.originalBuffer) return;
-      $("processBtn").disabled = true;
-      $("processNote").textContent = "보정본 만드는 중...";
+      const isGenreMode = mode === "genre";
+      const activeButton = isGenreMode ? $("genreProcessBtn") : $("processBtn");
+      const status = isGenreMode ? $("genreNote") : $("processNote");
+      const presetName = isGenreMode ? state.genrePreset : state.preset;
+      const selectedGenre = genreProfiles[state.genre] ? state.genre : "popRadio";
+      activeButton.disabled = true;
+      status.className = "status";
+      status.textContent = isGenreMode
+        ? `${genreProfiles[selectedGenre].label} 장르 보정본 만드는 중${state.genrePreClean ? "... 안전 정리도 함께 반영합니다." : "..."}`
+        : "보정본 만드는 중...";
       try {
         if (!state.analysis) {
           state.analysis = await analyze(state.originalBuffer);
@@ -4910,9 +6446,12 @@
           updateRecommendation(state.analysis, segments);
           updateOriginalSoundExplanation(state.analysis, segments);
         }
-        const result = await processBuffer(state.originalBuffer, state.preset, {
+        const result = await processBuffer(state.originalBuffer, presetName, {
           analysis: state.analysis,
-          goal: state.goal,
+          goal: isGenreMode ? "auto" : state.goal,
+          genre: selectedGenre,
+          mode: isGenreMode ? "genre" : "goal",
+          genrePreClean: isGenreMode && state.genrePreClean,
           segmentEdits: state.segmentEdits,
           applyFade: $("fadeToggle").checked
         });
@@ -4921,18 +6460,33 @@
         state.processedBuffer = processed;
         const processedAnalysis = await analyze(processed);
         state.processedAnalysis = processedAnalysis;
-        const presetLabel = document.querySelector(`[data-preset="${state.preset}"]`)?.textContent || state.preset;
-        const goalLabel = plan.goalLabel;
+        const presetLabel = isGenreMode
+          ? genrePresetLabels[presetName] || `장르 ${presetName}`
+          : document.querySelector(`[data-preset="${state.preset}"]`)?.textContent || state.preset;
+        const goalLabel = isGenreMode ? plan.genreLabel : plan.goalLabel;
         if (processedAnalysis.peak > 0.99) {
-          $("processNote").textContent = "보정본이 너무 큽니다. 약하게로 다시 시도하세요.";
-          $("processNote").className = "status bad";
+          status.textContent = "보정본이 너무 큽니다. 약하게로 다시 시도하세요.";
+          status.className = "status bad";
         } else {
           const segmentEditText = state.segmentEdits.length ? `, 보정 예약 ${state.segmentEdits.length}개 반영` : "";
-          $("processNote").textContent = `보정본 완료: ${goalLabel} 목표${segmentEditText}, 최대 소리 ${db(processedAnalysis.peak)}. 원본과 같은 구간으로 비교하세요.`;
+          const preCleanText = plan.preClean ? ", 안전 정리 포함" : "";
+          status.textContent = isGenreMode
+            ? `장르 보정본 완료: ${goalLabel}${preCleanText}${segmentEditText}, 최대 소리 ${db(processedAnalysis.peak)}. 원본과 같은 구간으로 비교하세요.`
+            : `보정본 완료: ${goalLabel} 목표${segmentEditText}, 최대 소리 ${db(processedAnalysis.peak)}. 원본과 같은 구간으로 비교하세요.`;
+          status.className = "status";
+        }
+        if (isGenreMode) {
+          $("processNote").textContent = `장르 탭에서 ${goalLabel} 보정본을 만들었습니다. 결과와 비교 탭에서 확인하세요.`;
           $("processNote").className = "status";
+        } else {
+          $("genreNote").textContent = "최근 보정본은 설정 탭에서 만들었습니다. 장르 보정이 필요하면 장르 탭에서 따로 만드세요.";
+          $("genreNote").className = "status";
         }
         updateComparison(state.analysis, processedAnalysis);
         const processedSegments = analyzeSegments(state.processedBuffer);
+        state.processedSegments = processedSegments;
+        updateAtAGlanceSummary(state.analysis, processedAnalysis, state.segments, processedSegments);
+        updateLoudnessStandard(state.analysis, processedAnalysis);
         updateResultVerdict(state.analysis, processedAnalysis, state.segments, processedSegments);
         updateQualityJudgment(state.analysis, processedAnalysis, state.segments, processedSegments);
         updateSaveFlowGuide(state.analysis, processedAnalysis, state.segments, processedSegments);
@@ -4940,40 +6494,55 @@
         updateSaveChecklist(state.analysis, processedAnalysis, processedSegments);
         updateProcessedSoundExplanation(processedAnalysis, processedSegments);
         updateChangeSoundExplanation(state.analysis, processedAnalysis);
+        updateVibeDoctor(state.analysis, state.segments, processedAnalysis, processedSegments);
         updateProcessedScore(state.analysis, processedAnalysis, buildProcessLog(state.analysis, processedAnalysis, presetLabel, goalLabel, $("fadeToggle").checked, plan), processedSegments);
         drawWave($("processedWave"), processed);
         drawAbWave($("abWave"));
         const wav = encodeWav(processed);
         if (state.processedUrl) URL.revokeObjectURL(state.processedUrl);
         state.processedUrl = URL.createObjectURL(wav);
-        state.processedFileName = `${state.fileName}_post_${state.preset}_${plan.goalName}${state.segmentEdits.length ? "_segments" : ""}.wav`;
+        const genrePreCleanSuffix = plan.preClean ? "_preclean" : "";
+        state.processedFileName = isGenreMode
+          ? `${state.fileName}_genre_${plan.genreName}_${presetName}${genrePreCleanSuffix}${state.segmentEdits.length ? "_segments" : ""}.wav`
+          : `${state.fileName}_post_${state.preset}_${plan.goalName}${state.segmentEdits.length ? "_segments" : ""}.wav`;
         $("processedAudio").src = state.processedUrl;
         $("processedAudio").load();
-        $("saveBtn").disabled = false;
+        setSaveButtonsDisabled(false);
         $("abProcessedBtn").disabled = false;
+        $("genreCompareBtn").disabled = false;
         if (state.segments.length) updateSegmentAnalysis(state.segments);
-        updateQuickWorkflow("보정본이 준비됐습니다. 비교해서 괜찮으면 바로 저장할 수 있습니다.");
+        updateQuickWorkflow(isGenreMode
+          ? "장르 보정본이 준비됐습니다. 비교해서 괜찮으면 저장할 수 있습니다."
+          : "보정본이 준비됐습니다. 비교해서 괜찮으면 바로 저장할 수 있습니다.");
       } catch (error) {
-        $("processNote").textContent = "보정본 생성에 실패했습니다.";
+        status.textContent = isGenreMode ? "장르 보정본 생성에 실패했습니다." : "보정본 생성에 실패했습니다.";
+        status.className = "status bad";
         updateQuickWorkflow("보정본 생성에 실패했습니다. 파일을 다시 확인하세요.");
         console.error(error);
       } finally {
-        $("processBtn").disabled = false;
+        activeButton.disabled = false;
       }
+    }
+
+    $("processBtn").addEventListener("click", async () => {
+      await createProcessedVersion("goal");
     });
 
-    $("saveBtn").addEventListener("click", () => {
+    function saveProcessedFile(source = "result") {
       if (!state.processedBuffer) {
         $("processNote").textContent = "먼저 추천 보정을 만들어야 저장할 수 있습니다.";
+        if (source === "genre") $("genreNote").textContent = "먼저 장르 보정본을 만들어야 저장할 수 있습니다.";
         return;
       }
       if (state.finalCheckStatus === "running") {
         $("processNote").textContent = "최종점검이 진행 중입니다. 결과를 먼저 고른 뒤 저장하세요.";
+        if (source === "genre") $("genreNote").textContent = "최종점검이 진행 중입니다. 결과를 먼저 고른 뒤 저장하세요.";
         selectView("result");
         return;
       }
       if (state.finalCheckStatus === "hold") {
         $("processNote").textContent = "최종점검에서 저장 보류가 나왔습니다. 저장하지 말고 약하게 다시 만들거나 원본을 유지하세요.";
+        if (source === "genre") $("genreNote").textContent = "최종점검에서 저장 보류가 나왔습니다. 저장하지 않는 쪽도 후보로 두세요.";
         document.querySelectorAll("[data-save-hold-note]").forEach((item) => item.remove());
         $("saveChecklistList").insertAdjacentHTML("beforeend", '<li class="caution" data-save-hold-note>최종점검 보류 상태라 저장을 막았습니다. 다시 만들거나 원본을 유지하세요.</li>');
         selectView("result");
@@ -4989,10 +6558,19 @@
       link.click();
       link.remove();
       $("processNote").textContent = `저장을 요청했습니다: ${state.processedFileName}`;
+      if (source === "genre") $("genreNote").textContent = `저장을 요청했습니다: ${state.processedFileName}`;
       document.querySelectorAll("[data-save-request-note]").forEach((item) => item.remove());
       $("saveChecklistList").insertAdjacentHTML("beforeend", '<li data-save-request-note>저장을 요청했습니다. 저장본을 한 번 재생해서 파일이 정상인지 확인하세요.</li>');
       updateQuickWorkflow(`저장을 요청했습니다: ${state.processedFileName}`);
       window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+
+    $("saveBtn").addEventListener("click", () => {
+      saveProcessedFile("result");
+    });
+
+    $("genreSaveBtn").addEventListener("click", () => {
+      saveProcessedFile("genre");
     });
 
     $("finalCheckStartBtn").addEventListener("click", startFinalCheck);
